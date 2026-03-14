@@ -9,8 +9,8 @@ type SummaryItemProps = {
 }
 
 const BalanceSummary = ({totalBalance, income, expense}: SummaryItemProps) => (
-  <Card className="relative m-4 mt-1 overflow-hidden bg-warm-cream shadow-md border-none">
-    <Image src="/assets/balance-cat.png" width={100} height={100} alt="Balance Summary" className="absolute inset-0 w-full h-full object-cover opacity-15 z-0" />
+  <Card className="relative m-4 mt-1 overflow-hidden bg-warm-cream shadow-lg border-none">
+    <Image src="/assets/balance-cat.png" width={100} height={100} alt="Balance Summary" className="absolute inset-0 w-full h-full object-cover opacity-10 z-0" />
     <CardHeader className="relative z-10">
       <CardTitle className="text-lg text-deep-slate">Total Balance</CardTitle>
     </CardHeader>

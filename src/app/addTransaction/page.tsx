@@ -3,6 +3,8 @@ import { useState } from "react"
 import BottomNav from "../component/BottomNav"
 import Image from "next/image"
 import { Banknote } from "lucide-react"
+import { accounts, categories } from "@/lib/db"
+
 
 
 export default function AddTransactionPage() {
@@ -122,24 +124,17 @@ export default function AddTransactionPage() {
                 {/* Account */}
                 <select className="p-3 appearance-none border rounded-lg bg-soft-orange/10 text-deep-slate">
                     <option value="">Select Account</option>
-                    <option value="Cash">Cash</option>
-                    <option value="BCA">BCA</option>
-                    <option value="BRI">BRI</option>
-                    <option value="Mandiri">Mandiri</option>
-                    <option value="Gopay">Gopay</option>
-                    <option value="OVO">OVO</option>
-                    <option value="DANA">DANA</option>
-                    <option value="ShopeePay">ShopeePay</option>
+                    {accounts.map((acc) => (
+                        <option key={acc.name} value={acc.name}>{acc.name}</option>
+                    ))}
                 </select>
 
                 {/* Category */}
                 <select className="p-3 appearance-none border rounded-lg bg-soft-orange/10 text-deep-slate">
                     <option value="">Select Category</option>
-                    <option value="Food">🍜 Food</option>
-                    <option value="Transport">🚗 Transport</option>
-                    <option value="Entertainment">🎮 Entertainment</option>
-                    <option value="Utilities">💡 Utilities</option>
-                    <option value="Others">📦 Others</option>
+                    {categories.map((cat) => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))}
                 </select>
             </form>
 
