@@ -7,13 +7,13 @@ const IndexFilterSummary = () => {
                     <Filter className="w-4 h-4" />
             </button>
 
-            <a className="p-2 border-2 rounded-full text-xs text-deep-slate border-soft-orange shadow-sm active">
+            <a className="p-2 border-2 rounded-full text-xs text-deep-slate border-soft-orange active:bg-amber-600 active:border-amber-50 active:text-white shadow-sm active">
                     This Week
             </a>
-            <a className="p-2 border-2 rounded-full text-xs text-deep-slate shadow-sm border-soft-orange">
+            <a className="p-2 border-2 rounded-full text-xs text-deep-slate shadow-sm border-soft-orange active:bg-amber-600 active:border-amber-50 active:text-white">
                     This Month
             </a>
-            <a className="p-2 border-2 rounded-full text-xs text-deep-slate border-soft-orange">
+            <a className="p-2 border-2 rounded-full text-xs text-deep-slate border-soft-orange active:bg-amber-600 active:border-amber-50 active:text-white">
                     This Year
             </a>
         </div>

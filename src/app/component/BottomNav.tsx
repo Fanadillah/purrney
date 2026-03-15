@@ -12,7 +12,7 @@ const BottomNav = () => {
       <Home size={24} />
       <span className="text-xs">Home</span>
     </a>
-    <a href="/account" className={navItems("/account")}>
+    <a href="/accounts" className={navItems("/accounts")}>
       <Wallet size={24} />
       <span className="text-xs">Account</span>
     </a>

@@ -1,7 +1,7 @@
 
 // Dummy data for demonstration
 const user = {
-  name: "Purrney",
+  name: "Ilham",
   avatar: "/assets/user-avatar.png",
 }
 interface Transaction {
@@ -71,22 +71,26 @@ const progressData: ProgressData[] = Object.keys(amountMaxCategories).map((categ
 // ]
 
 const accounts = [
-  {name: "Cash", amount: 500000},
-  {name: "BCA", amount: 1500000},
-  {name: "BRI", amount: 2000000},
-  {name: "Mandiri", amount: 3500000},
-  {name: "Gopay", amount: 500000},
-  {name: "OVO", amount: 1000000},
-  {name: "DANA", amount: 750000},
-  {name: "ShopeePay", amount: 1250000},
+  {name: "Cash", balance: 500000},
+  {name: "BCA", balance: 1500000},
+  {name: "BRI", balance: 2000000},
+  {name: "Mandiri", balance: 3500000},
+  {name: "Gopay", balance: 500000},
+  {name: "OVO", balance: 1000000},
+  {name: "DANA", balance: 750000},
+  {name: "ShopeePay", balance: 1250000},
 ];
 
 const categories = [
+  { value: "Income", label: "💰 Income" },
   { value: "Food", label: "🍜 Food" },
   { value: "Transport", label: "🚗 Transport" },
   { value: "Entertainment", label: "🎮 Entertainment" },
   { value: "Utilities", label: "💡 Utilities" },
   { value: "Others", label: "📦 Others" },
+  { value: "Shopping", label: "🛍️ Shopping" },
+  { value: "Education", label: "📚 Education" },
+  { value: "Health", label: "🏥 Health" },
 ];
 // end dummy data
 
