@@ -13,3 +13,31 @@ body {
   background-color: var(--color-app-background);
 }
 
+button,
+a,
+input,
+select,
+textarea {
+  letter-spacing: 0;
+}
+
+button,
+a,
+input,
+select {
+  min-height: 44px;
+}
+
+img,
+svg {
+  flex-shrink: 0;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

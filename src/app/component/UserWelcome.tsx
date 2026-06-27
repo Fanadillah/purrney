@@ -1,38 +1,81 @@
 "use client"
-import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle, Card } from "@/components/ui/card";
+
+import { CardDescription, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
 import { useState } from "react";
+import { useAuth } from "../api/AuthContext";
+import GoogleWorkspaceStatus from "./GoogleWorkspaceStatus";
 
-type userProps = {
-  name: string;
-}
-
-
-const UserWelcome: React.FC<userProps> = ({ name }) => {
-
+const UserWelcome = () => {
+  const { user, loading, error, signInWithGoogle, logOut } = useAuth();
   const [visible, setVisible] = useState(true);
 
   if (!visible) return null;
+
   return (
-  <div className="m-4 border-none flex justify-between items-center">
-    <div className="flex gap-4 pl-0">
-    <div className="pr-0 pl-0">
-        <Image src="/assets/welcome-cat.png" width={70} height={70} alt="Welcome Cat" className="w-full h-auto pr-2 object-cover rounded-b-md" />
-    </div>
-      <div className="bg-warm-cream shadow-xl rounded-lg relative p-4">
-        <div className="absolute  w-0 h-0
-    border-r-[7vw] border-r-warm-cream
-    border-t-[3vh] border-t-transparent
-    border-b-[3vh] border-b-transparent  right-56 top-0"></div>
-    <button onClick={() => setVisible(false)} 
-      className="absolute -top-2 -right-1 text-deep-slate bg-white opacity-30 rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-gray-200">
-        ✕
-    </button>
-      <CardTitle className="text-lg text-deep-slate">Hello {name}</CardTitle>
-      <CardDescription className="text-sm text-deep-slate">Here's a summary of your finances.</CardDescription>
+    <div className="m-4 flex items-center border-none">
+      <div className="flex w-full gap-3 sm:gap-4">
+        <div className="hidden shrink-0 sm:block">
+          <Image
+            src="/assets/welcome-cat.png"
+            width={70}
+            height={70}
+            alt="Welcome Cat"
+            className="h-auto w-16 object-cover rounded-b-md"
+          />
+        </div>
+        <div className="relative w-full rounded-lg bg-warm-cream p-4 shadow-md">
+          <button
+            type="button"
+            onClick={() => setVisible(false)}
+            className="absolute -top-2 -right-1 text-deep-slate bg-white opacity-30 rounded-full w-6 h-6 flex items-center justify-center shadow hover:bg-gray-200"
+          >
+            x
+          </button>
+
+          {loading ? (
+            <p className="text-sm text-deep-slate mb-2">Checking your session...</p>
+          ) : !user ? (
+            <>
+              <p className="text-sm text-deep-slate mb-2">
+                Please sign in to view your profile.
+              </p>
+              {error ? (
+                <p className="mb-2 rounded-md bg-red-50 p-2 text-xs text-money-out">
+                  {error}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void signInWithGoogle()}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Sign in with Google
+              </button>
+            </>
+          ) : (
+            <div className="space-y-2">
+              <CardTitle className="break-words text-lg text-deep-slate">
+                Hello {user.displayName || "Guest"}
+              </CardTitle>
+              <button
+                type="button"
+                onClick={() => void logOut()}
+                className="text-xs font-semibold text-soft-orange"
+              >
+                Sign out
+              </button>
+            </div>
+          )}
+
+          <CardDescription className="text-sm text-deep-slate">
+            Here&apos;s a summary of your finances.
+          </CardDescription>
+          <GoogleWorkspaceStatus />
+        </div>
       </div>
     </div>
-  </div>
-)};
+  );
+};
 
 export default UserWelcome;

@@ -1,20 +1,28 @@
-import { Card, CardDescription, } from "@/components/ui/card";
-import Image from "next/image";
+import { BookOpenText, Target, Wallet, WalletCards } from "lucide-react";
+import Link from "next/link";
 
 const QuickMenu = () => (
-    <div className="m-3 mb-0 mt-1 p-3">
-    <div>
-        <h2 className="text-xl font-bold text-deep-slate mb-1">Quick Menu</h2>
+    <div className="m-4 rounded-lg bg-warm-cream p-4 shadow-sm">
+    <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-base font-bold text-deep-slate">Quick Actions</h2>
     </div>
-    <div className="flex mt-3 gap-4 w-full justify-between items-center">
-        <a href="/goals" className="flex items-center p-4 py-1 w-full bg-warm-cream hover:bg-amber-500 hover:text-amber-50 active:bg-amber-500 active:text-amber-50 shadow-lg rounded-2xl">
-            <Image src="/assets/goalsCat.png" alt="Goals" width={60} height={60} />
-            <h2 className="font-bold">Goals</h2>
-        </a>
-        <a href="/budget" className="flex items-center p-4 py-1 w-full bg-warm-cream hover:bg-amber-500 hover:text-amber-50 active:bg-amber-500 active:text-amber-50 shadow-lg rounded-2xl">
-            <Image src="/assets/budgetCat.png" alt="Budget" width={60} height={60} />
-            <h2 className="font-bold">Budget</h2>
-        </a>
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
+        <Link href="/addTransaction" className="flex min-h-14 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-deep-slate shadow-sm transition hover:text-soft-orange">
+            <BookOpenText size={18} className="text-soft-orange" />
+            <span>Add</span>
+        </Link>
+        <Link href="/accounts" className="flex min-h-14 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-deep-slate shadow-sm transition hover:text-soft-orange">
+            <Wallet size={18} className="text-soft-orange" />
+            <span>Wallets</span>
+        </Link>
+        <Link href="/budget" className="flex min-h-14 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-deep-slate shadow-sm transition hover:text-soft-orange">
+            <WalletCards size={18} className="text-soft-orange" />
+            <span>Budget</span>
+        </Link>
+        <Link href="/goals" className="flex min-h-14 items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-deep-slate shadow-sm transition hover:text-soft-orange">
+            <Target size={18} className="text-soft-orange" />
+            <span>Goals</span>
+        </Link>
     </div>
     </div>
 )

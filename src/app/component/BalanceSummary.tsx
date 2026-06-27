@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { ArrowUp, ArrowDown } from "lucide-react";
 import Image from "next/image";
 
@@ -18,31 +18,31 @@ type SummaryItemProps = {
 
 
 const BalanceSummary = ({totalBalance, income, expense}: SummaryItemProps) => (
-  <Card className="relative m-4 mt-1 overflow-hidden bg-warm-cream shadow-lg border-none">
-    <Image src="/assets/balance-cat.png" width={100} height={100} alt="Balance Summary" className="absolute inset-0 w-full h-full object-cover opacity-10 z-0" />
-    <div className="flex justify-between items-center space-y-1 pb-2 pl-6 pt-2 pr-1 z-10">
-      <CardTitle className="text-lg text-deep-slate">Total Balance</CardTitle>
-      <p className="text-sm text-deep-slate">{formattedDate}</p>
+  <Card className="relative m-4 mt-1 overflow-hidden rounded-lg border-none bg-warm-cream shadow-sm">
+    <Image src="/assets/balance-cat.png" width={160} height={160} alt="Balance Summary" className="absolute bottom-0 right-0 h-full w-48 object-cover opacity-10 z-0" />
+    <div className="relative z-10 flex flex-col gap-1 px-4 pb-2 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <CardTitle className="text-base text-deep-slate">Total Balance</CardTitle>
+      <p className="text-xs text-deep-slate/60">{formattedDate}</p>
     </div>
     <CardContent className="relative z-10">
-      <p className="text-3xl font-bold text-deep-slate">Rp {totalBalance.toLocaleString("id-ID")}</p>
-      <div className="flex mt-4">
-        <div className="flex items-center mr-6">
-          <div className="bg-money-in p-2 rounded-full mr-2">
+      <p className="break-words text-4xl font-bold tracking-normal text-deep-slate">Rp {totalBalance.toLocaleString("id-ID")}</p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="flex min-w-0 items-center rounded-lg bg-white/60 p-3">
+          <div className="mr-3 rounded-full bg-money-in p-2">
             <ArrowUp className="text-white" size={16} />
           </div>
-          <div>
-            <p className="text-sm text-deep-slate">Income</p>
-            <p className="text-lg font-semibold text-money-in">Rp {income.toLocaleString("id-ID")}</p>
+          <div className="min-w-0">
+            <p className="text-xs text-deep-slate/60">Income</p>
+            <p className="truncate text-base font-semibold text-money-in">Rp {income.toLocaleString("id-ID")}</p>
           </div>
         </div>
-        <div className="flex items-center">
-          <div className="bg-money-out p-2 rounded-full mr-2">
+        <div className="flex min-w-0 items-center rounded-lg bg-white/60 p-3">
+          <div className="mr-3 rounded-full bg-money-out p-2">
             <ArrowDown className="text-white" size={16} />
           </div>
-          <div>
-            <p className="text-sm text-deep-slate">Expense</p>
-            <p className="text-lg font-semibold text-money-out">Rp {expense.toLocaleString("id-ID")}</p>
+          <div className="min-w-0">
+            <p className="text-xs text-deep-slate/60">Expense</p>
+            <p className="truncate text-base font-semibold text-money-out">Rp {expense.toLocaleString("id-ID")}</p>
           </div>
         </div>
       </div>

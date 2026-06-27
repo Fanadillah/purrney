@@ -1,114 +1,84 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import Link from "next/link";
 
-type ProgressBarProps = {
-    category: string;
-    amount: number;
-    amountMax: number;
-    color: string;
-}
 type CardProgress = {
-    id: number;
-    category: string;
-    amount: number;
-    amountMax: number;
-    color: string;
-}
+  id: string;
+  category: string;
+  amount: number;
+  amountMax: number;
+};
+
 type ProgressBarComponentProps = {
-    data: CardProgress[];
+  data: CardProgress[];
+};
+
+function calculatedPercentage(amount: number, amountMax: number) {
+  if (amountMax === 0) return 0;
+  return Math.min(999, Math.round((amount / amountMax) * 100));
 }
 
-const calculatedPercentage = (amount: number, amountMax: number) => {
-    if (amountMax === 0) return 0;
-    return Math.round((amount / amountMax) * 100);
-}
-const colorProgress = (amount:number, amountMax: number) => {
-    if (calculatedPercentage(amount, amountMax) >= 0 && calculatedPercentage(amount, amountMax) < 50) {
-        return "bg-green-500";
-    } else if (calculatedPercentage(amount, amountMax) >= 50 && calculatedPercentage(amount, amountMax) < 80) {
-        return "bg-yellow-500";
-    } else {
-        return "bg-red-500";
-    }
+function getBudgetStatus(percentage: number) {
+  if (percentage >= 100) return "Over";
+  if (percentage >= 75) return "Near";
+  return "Safe";
 }
 
-const CardProgress = ({category, amount, amountMax, color}: ProgressBarProps) => (
-        <div className="min-w-62 sm:min-w-75 md:min-w-87.5 p-2 bg-warm-cream shadow-md rounded-md scroll-snap-start">
-        <div className="flex justify-between items-center ">
-        <h2 className=" font-bold text-deep-slate mb-2">{category}</h2>
-        <p className="text-sm font-semibold text-deep-slate">{calculatedPercentage(amount, amountMax)}%</p>
+const BudgetRow = ({ category, amount, amountMax }: CardProgress) => {
+  const percentage = calculatedPercentage(amount, amountMax);
+  const status = getBudgetStatus(percentage);
+  const statusClass =
+    status === "Over"
+      ? "text-money-out"
+      : status === "Near"
+        ? "text-soft-orange"
+        : "text-money-in";
+
+  return (
+    <div className="rounded-md bg-white p-3 shadow-sm">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-bold text-deep-slate">{category}</h3>
+          <p className="text-xs text-deep-slate/60">
+            Rp {amount.toLocaleString("id-ID")} / Rp {amountMax.toLocaleString("id-ID")}
+          </p>
         </div>
-        <Progress value={calculatedPercentage(amount, amountMax)} className="h-2 rounded-full bg-soft-orange/30">
-  {/* <div 
-    className="h-2 rounded-full bg-soft-orange" // warna progress
-    style={{ width: `${calculatedPercentage(amount, amountMax)}%` }}
-  /> */}
-
-        </Progress>
-        <div className="mt-2 flex justify-between items-center">
-        <p className="text-sm text-deep-slate">Rp {amount.toLocaleString("id-ID")}</p>
-        <p className="text-sm text-deep-slate">Rp {amountMax.toLocaleString("id-ID")}
-        </p>
-
+        <div className="text-right">
+          <p className="text-sm font-bold text-deep-slate">{percentage}%</p>
+          <p className={`text-xs font-semibold ${statusClass}`}>{status}</p>
         </div>
+      </div>
+      <Progress value={Math.min(100, percentage)} className="h-2 rounded-full bg-soft-orange/20" />
     </div>
-)
-const ProgressBar = ({data}: ProgressBarComponentProps) => (
-    <div className="m-4 mt-0 p-4">
-        <div className="flex justify-between items-center mb-2">
-        <h2 className="text-xl font-bold text-deep-slate mb-1">My Budgets</h2>
-        <a href="">View All</a>
+  );
+};
 
+const ProgressBar = ({ data }: ProgressBarComponentProps) => {
+  const topBudgets = [...data]
+    .sort((left, right) => calculatedPercentage(right.amount, right.amountMax) - calculatedPercentage(left.amount, left.amountMax))
+    .slice(0, 3);
+
+  return (
+    <section className="m-4 rounded-lg bg-warm-cream p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-base font-bold text-deep-slate">Budget Overview</h2>
+        <Link href="/budget" className="text-sm font-semibold text-soft-orange">
+          View All
+        </Link>
+      </div>
+
+      {topBudgets.length === 0 ? (
+        <Link href="/budget" className="block rounded-md bg-white p-3 text-sm text-deep-slate/70 shadow-sm">
+          No active budgets yet.
+        </Link>
+      ) : (
+        <div className="space-y-3">
+          {topBudgets.map((budget) => (
+            <BudgetRow key={budget.id} {...budget} />
+          ))}
         </div>
-
-        <div className="flex overflow-x-auto flex-nowrap  items-center gap-5 w-full scroll-snap-x scroll-snap-mandatory scrollbar-hide">
-
-
-
-        {/* card progress */}
-        {data.map((cardProgress) => (
-            <CardProgress 
-            key={cardProgress.id} 
-            category={cardProgress.category}
-            amount={cardProgress.amount}
-            amountMax={cardProgress.amountMax}
-            color={cardProgress.color}
-            />
-        ))}
-
-        {/* <div className="min-w-62 sm:min-w-75 md:min-w-87.5 p-2 bg-warm-cream shadow-md rounded-md scroll-snap-start">
-        <div className="flex justify-between items-center ">
-        <h2 className=" font-bold text-deep-slate mb-2">Monthly Savings Goal</h2>
-        <p className="text-sm font-semibold text-deep-slate">75%</p>
-        </div>
-        <Progress value={75} className="h-2 rounded-full bg-soft-orange/30" />
-        <p className="text-sm text-deep-slate mt-2">Rp 750.000 of Rp 1.000.000 saved</p>
-    </div> */}
-        {/* end card progress */} 
-        {/* card progress */}
-        {/* <div className="min-w-62 sm:min-w-75 md:min-w-87.5 p-2 bg-warm-cream shadow-md rounded-md scroll-snap-start">
-        <div className="flex justify-between items-center ">
-        <h2 className=" font-bold text-deep-slate mb-2">Monthly Savings Goal</h2>
-        <p className="text-sm font-semibold text-deep-slate">75%</p>
-        </div>
-        <Progress value={75} className="h-2 rounded-full bg-soft-orange/30" />
-        <p className="text-sm text-deep-slate mt-2">Rp 750.000 of Rp 1.000.000 saved</p>
-    </div> */}
-        {/* end card progress */}  
-        {/* card progress */}
-        {/* <div className="min-w-62 sm:min-w-75 md:min-w-87.5 p-2 bg-warm-cream shadow-md rounded-md scroll-snap-start">
-        <div className="flex justify-between items-center ">
-        <h2 className=" font-bold text-deep-slate mb-2">Monthly Savings Goal</h2>
-        <p className="text-sm font-semibold text-deep-slate">75%</p>
-        </div>
-        <Progress value={75} className="h-2 rounded-full bg-soft-orange/30" />
-        <p className="text-sm text-deep-slate mt-2">Rp 750.000 of Rp 1.000.000 saved</p>
-    </div> */}
-        {/* end card progress */}
-
-        </div>
-    </div>
-    
-)
+      )}
+    </section>
+  );
+};
 
 export default ProgressBar;
