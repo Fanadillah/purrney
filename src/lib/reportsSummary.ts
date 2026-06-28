@@ -4,7 +4,7 @@ import type {
   DashboardTransaction,
   ParsedSpreadsheetData,
 } from "./spreadsheetData";
-import type { CategoryKind, TransactionSheetRow } from "./spreadsheetSchema";
+import { DEFAULT_CATEGORIES, type CategoryKind, type TransactionSheetRow } from "./spreadsheetSchema";
 
 export type ReportSegment = {
   id: string;
@@ -46,6 +46,24 @@ const chartColors = [
 
 function getColor(index: number) {
   return chartColors[index % chartColors.length];
+}
+
+const defaultCategoryByValue = new Map(
+  DEFAULT_CATEGORIES.map((category) => [category.value, category])
+);
+
+function getCategoryLabel({
+  categoryValue,
+  categories,
+}: {
+  categoryValue: string;
+  categories: ParsedSpreadsheetData["categories"];
+}) {
+  return (
+    categories.find((category) => category.value === categoryValue)?.label ??
+    defaultCategoryByValue.get(categoryValue)?.label ??
+    categoryValue
+  );
 }
 
 function isInPeriod(transaction: TransactionSheetRow | DashboardTransaction, period: string) {
@@ -92,7 +110,7 @@ function buildCategorySegments({
 
       return {
         id: categoryValue,
-        label: category?.label ?? categoryValue,
+        label: category?.label ?? defaultCategoryByValue.get(categoryValue)?.label ?? categoryValue,
         amount,
         percentage: total > 0 ? Math.round((amount / total) * 100) : 0,
         color: getColor(index),
@@ -123,8 +141,6 @@ function buildBiggestTransactions({
   transactions: TransactionSheetRow[];
   categories: ParsedSpreadsheetData["categories"];
 }) {
-  const categoryByValue = new Map(categories.map((category) => [category.value, category]));
-
   return transactions
     .map((transaction) => {
       const transfer = isTransfer(transaction);
@@ -139,7 +155,10 @@ function buildBiggestTransactions({
         transferGroupId: transaction.transferGroupId,
         label: transfer
           ? "Transfer"
-          : categoryByValue.get(transaction.categoryValue)?.label ?? transaction.categoryValue,
+          : getCategoryLabel({
+              categoryValue: transaction.categoryValue,
+              categories,
+            }),
         isTransfer: transfer,
       };
     })
@@ -171,7 +190,10 @@ function buildBudgetWatch({
 
       return {
         id: budget.id,
-        label: categoryByValue.get(budget.categoryValue)?.label ?? budget.categoryValue,
+        label:
+          categoryByValue.get(budget.categoryValue)?.label ??
+          defaultCategoryByValue.get(budget.categoryValue)?.label ??
+          budget.categoryValue,
         amount,
         percentage: budget.amountMax > 0 ? Math.round((amount / budget.amountMax) * 100) : 0,
         color: getColor(index),

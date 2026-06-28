@@ -36,6 +36,19 @@ type AppendValuesResponse = {
   };
 };
 
+type SpreadsheetMetadataResponse = {
+  sheets?: Array<{
+    properties?: {
+      sheetId?: number;
+      title?: string;
+    };
+  }>;
+};
+
+type TransactionRowLookupResponse = {
+  values?: string[][];
+};
+
 export type CreatedUserSpreadsheet = {
   spreadsheetId: string;
   spreadsheetUrl: string;
@@ -165,6 +178,41 @@ async function requestGoogleApi<T>({
       method: "POST",
       headers: getAuthHeaders(accessToken),
       body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(await parseGoogleApiError(response));
+    }
+
+    return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Google API request timed out. Please check the enabled APIs and try again.");
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+async function requestGoogleApiGet<T>({
+  accessToken,
+  url,
+}: {
+  accessToken: string;
+  url: string;
+}) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => {
+    controller.abort();
+  }, googleApiTimeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: getAuthHeaders(accessToken),
       signal: controller.signal,
     });
 
@@ -479,6 +527,72 @@ export async function appendTransferToSpreadsheet({
         toTransactionValues(fromTransaction),
         toTransactionValues(toTransaction),
       ],
+    },
+  });
+}
+
+export async function deleteTransactionFromSpreadsheet({
+  accessToken,
+  spreadsheetId,
+  transactionId,
+  transferGroupId,
+}: {
+  accessToken: string;
+  spreadsheetId: string;
+  transactionId: string;
+  transferGroupId?: string;
+}) {
+  const metadata = await requestGoogleApiGet<SpreadsheetMetadataResponse>({
+    accessToken,
+    url: `${sheetsApiBaseUrl}/${spreadsheetId}?fields=sheets.properties(sheetId,title)`,
+  });
+  const transactionsSheet = metadata.sheets?.find(
+    (sheet) => sheet.properties?.title === SHEET_NAMES.transactions
+  );
+  const sheetId = transactionsSheet?.properties?.sheetId;
+
+  if (typeof sheetId !== "number") {
+    throw new Error("Transactions sheet was not found.");
+  }
+
+  const rows = await requestGoogleApiGet<TransactionRowLookupResponse>({
+    accessToken,
+    url: `${sheetsApiBaseUrl}/${spreadsheetId}/values/${encodeURIComponent(`${SHEET_NAMES.transactions}!A:J`)}`,
+  });
+  const rowIndexes = (rows.values ?? [])
+    .map((row, index) => ({
+      index,
+      id: row[0] ?? "",
+      rowTransferGroupId: row[9] ?? "",
+    }))
+    .filter(({ index, id, rowTransferGroupId }) => {
+      if (index === 0) {
+        return false;
+      }
+
+      return id === transactionId || Boolean(transferGroupId && rowTransferGroupId === transferGroupId);
+    })
+    .map(({ index }) => index)
+    .sort((first, second) => second - first);
+
+  if (rowIndexes.length === 0) {
+    throw new Error("Transaction was not found in the spreadsheet.");
+  }
+
+  return requestGoogleApi({
+    accessToken,
+    url: `${sheetsApiBaseUrl}/${spreadsheetId}:batchUpdate`,
+    body: {
+      requests: rowIndexes.map((rowIndex) => ({
+        deleteDimension: {
+          range: {
+            sheetId,
+            dimension: "ROWS",
+            startIndex: rowIndex,
+            endIndex: rowIndex + 1,
+          },
+        },
+      })),
     },
   });
 }

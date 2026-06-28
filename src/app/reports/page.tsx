@@ -44,12 +44,14 @@ function DonutChart({ segments }: { segments: ReportSegment[] }) {
 
   return (
     <div
-      className="relative h-32 w-32 rounded-full sm:h-40 sm:w-40"
+      className="relative h-36 w-36 rounded-full sm:h-44 sm:w-44"
       style={{ background: `conic-gradient(${gradientStops})` }}
     >
-      <div className="absolute inset-8 flex flex-col items-center justify-center rounded-full bg-warm-cream text-center">
+      <div className="absolute inset-4 flex flex-col items-center justify-center rounded-full bg-warm-cream px-3 text-center sm:inset-5">
         <span className="text-xs text-deep-slate/60">Total</span>
-        <span className="text-sm font-bold text-deep-slate">{formatCurrency(total)}</span>
+        <span className="mt-1 max-w-full break-words text-xs font-bold leading-tight text-deep-slate sm:text-sm">
+          {formatCurrency(total)}
+        </span>
       </div>
     </div>
   );

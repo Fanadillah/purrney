@@ -1,10 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Repeat, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Repeat, Search, Trash2 } from "lucide-react";
+import { useAuth } from "@/app/api/AuthContext";
 import AuthGate from "@/app/component/AuthGate";
 import BottomNav from "@/app/component/BottomNav";
 import { useSpreadsheetDashboard } from "@/app/hooks/useSpreadsheetDashboard";
+import type { DashboardTransaction } from "@/lib/spreadsheetData";
+import { deleteTransactionFromSpreadsheet } from "@/lib/userSpreadsheet";
 
 type FilterMode = "all" | "date" | "month" | "year";
 
@@ -15,6 +18,7 @@ function formatAmount(value: number) {
 }
 
 export default function TransactionsPage() {
+  const { registry, googleAccessToken } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMode, setFilterMode] = useState<FilterMode>("all");
   const [dateFilter, setDateFilter] = useState("");
@@ -22,6 +26,10 @@ export default function TransactionsPage() {
   const [yearFilter, setYearFilter] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
+  const [transactionToDelete, setTransactionToDelete] = useState<DashboardTransaction | null>(null);
+  const [deleteStatus, setDeleteStatus] = useState<"idle" | "deleting">("idle");
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const {
     dashboard,
     status,
@@ -29,6 +37,7 @@ export default function TransactionsPage() {
     needsReconnect,
     hasNoSpreadsheet,
     reconnectGoogleWorkspace,
+    reload,
   } = useSpreadsheetDashboard();
   const transactions = useMemo(
     () =>
@@ -78,6 +87,47 @@ export default function TransactionsPage() {
     setPage(1);
   }
 
+  async function handleDeleteTransaction() {
+    if (!transactionToDelete) {
+      return;
+    }
+
+    if (!registry?.spreadsheetId || !googleAccessToken) {
+      setDeleteError("Reconnect Google Sheets access before deleting transactions.");
+      return;
+    }
+
+    try {
+      setDeleteStatus("deleting");
+      setDeleteError(null);
+      setDeleteMessage(null);
+
+      await deleteTransactionFromSpreadsheet({
+        accessToken: googleAccessToken,
+        spreadsheetId: registry.spreadsheetId,
+        transactionId: transactionToDelete.id,
+        transferGroupId: transactionToDelete.transferGroupId,
+      });
+      await reload();
+
+      setDeleteMessage(
+        transactionToDelete.transferGroupId
+          ? "Transfer transaction deleted."
+          : "Transaction deleted."
+      );
+      setTransactionToDelete(null);
+    } catch (deleteTransactionError) {
+      console.error("Error deleting transaction:", deleteTransactionError);
+      setDeleteError(
+        deleteTransactionError instanceof Error
+          ? deleteTransactionError.message
+          : "Failed to delete transaction."
+      );
+    } finally {
+      setDeleteStatus("idle");
+    }
+  }
+
   return (
     <AuthGate>
       <div className="min-h-screen bg-app-background pb-28 md:pl-20 md:pb-8">
@@ -112,6 +162,16 @@ export default function TransactionsPage() {
           {error ? (
             <div className="rounded-md bg-red-50 p-3 text-sm text-money-out shadow">
               {error}
+            </div>
+          ) : null}
+          {deleteMessage ? (
+            <div className="rounded-md bg-green-50 p-3 text-sm text-money-in shadow">
+              {deleteMessage}
+            </div>
+          ) : null}
+          {deleteError ? (
+            <div className="rounded-md bg-red-50 p-3 text-sm text-money-out shadow">
+              {deleteError}
             </div>
           ) : null}
 
@@ -278,9 +338,23 @@ export default function TransactionsPage() {
                             </div>
                           </div>
                         </div>
-                        <p className={`shrink-0 text-right text-sm font-bold ${amountClass}`}>
-                          {transaction.type === "in" ? "+" : "-"}Rp {formatAmount(transaction.amount)}
-                        </p>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <p className={`text-right text-sm font-bold ${amountClass}`}>
+                            {transaction.type === "in" ? "+" : "-"}Rp {formatAmount(transaction.amount)}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteError(null);
+                              setDeleteMessage(null);
+                              setTransactionToDelete(transaction);
+                            }}
+                            className="flex h-10 w-10 items-center justify-center rounded-md border border-red-100 bg-red-50 text-money-out"
+                            aria-label={`Delete ${transaction.description}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -330,6 +404,48 @@ export default function TransactionsPage() {
             )}
           </section>
         </main>
+
+        {transactionToDelete ? (
+          <div className="fixed inset-0 z-50 flex items-end bg-deep-slate/40 p-4 sm:items-center sm:justify-center">
+            <div className="w-full rounded-lg bg-white p-4 shadow-xl sm:max-w-md">
+              <h2 className="text-lg font-bold text-deep-slate">Delete transaction?</h2>
+              <p className="mt-2 text-sm leading-6 text-deep-slate/70">
+                This will remove <span className="font-semibold text-deep-slate">{transactionToDelete.description}</span> from your spreadsheet.
+                {transactionToDelete.transferGroupId
+                  ? " Because this is a transfer, the matching transfer row will be deleted too."
+                  : ""}
+              </p>
+              <div className="mt-3 rounded-md bg-app-background p-3">
+                <p className="text-sm font-semibold text-deep-slate">
+                  {transactionToDelete.type === "in" ? "+" : "-"}Rp{" "}
+                  {formatAmount(transactionToDelete.amount)}
+                </p>
+                <p className="mt-1 text-xs text-deep-slate/60">
+                  {transactionToDelete.date} -{" "}
+                  {transactionToDelete.transferGroupId ? "Transfer" : transactionToDelete.category}
+                </p>
+              </div>
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row-reverse">
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteTransaction()}
+                  disabled={deleteStatus === "deleting"}
+                  className="rounded-md bg-money-out px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {deleteStatus === "deleting" ? "Deleting..." : "Delete"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTransactionToDelete(null)}
+                  disabled={deleteStatus === "deleting"}
+                  className="rounded-md border border-deep-slate/20 px-4 py-2 text-sm font-semibold text-deep-slate disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <BottomNav />
       </div>
