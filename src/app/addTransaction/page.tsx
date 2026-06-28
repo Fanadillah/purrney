@@ -98,7 +98,7 @@ export default function AddTransactionPage() {
         return false
     })
     const canSubmit =
-        Boolean(googleAccessToken) &&
+        Boolean(user?.uid) &&
         Boolean(registry?.spreadsheetId) &&
         Boolean(accountId) &&
         (isTransfer
@@ -112,9 +112,9 @@ export default function AddTransactionPage() {
         event.preventDefault()
         const numericAmount = parseAmount()
 
-        if (!googleAccessToken || !registry?.spreadsheetId) {
+        if (!user?.uid || !registry?.spreadsheetId) {
             setSubmitStatus("error")
-            setSubmitMessage("Reconnect Google Sheets access before saving.")
+            setSubmitMessage("Your account or spreadsheet is not ready yet.")
             return
         }
 
@@ -149,6 +149,26 @@ export default function AddTransactionPage() {
             try {
                 setSubmitStatus("saving")
                 setSubmitMessage(null)
+
+                if (!googleAccessToken) {
+                    enqueuePendingSpreadsheetWrite({
+                        id: transferRows.fromTransaction.transferGroupId,
+                        uid: user.uid,
+                        spreadsheetId: registry.spreadsheetId,
+                        kind: "transfer",
+                        ...transferRows,
+                        createdAt: new Date().toISOString(),
+                        attempts: 0,
+                        lastError: "Waiting for Google Sheets access.",
+                    })
+                    setSubmitStatus("success")
+                    setSubmitMessage("You are offline. Transfer saved as pending and will sync when you are online.")
+                    setAmount("")
+                    setDescription("")
+                    setNote("")
+                    setToAccountId("")
+                    return
+                }
 
                 await appendTransferToSpreadsheet({
                     accessToken: googleAccessToken,
@@ -219,13 +239,32 @@ export default function AddTransactionPage() {
             note: note.trim(),
         })
 
-        try {
-            setSubmitStatus("saving")
-            setSubmitMessage(null)
+            try {
+                setSubmitStatus("saving")
+                setSubmitMessage(null)
 
-            await appendTransactionToSpreadsheet({
-                accessToken: googleAccessToken,
-                spreadsheetId: registry.spreadsheetId,
+                if (!googleAccessToken) {
+                    enqueuePendingSpreadsheetWrite({
+                        id: transaction.id,
+                        uid: user.uid,
+                        spreadsheetId: registry.spreadsheetId,
+                        kind: "transaction",
+                        transaction,
+                        createdAt: new Date().toISOString(),
+                        attempts: 0,
+                        lastError: "Waiting for Google Sheets access.",
+                    })
+                    setSubmitStatus("success")
+                    setSubmitMessage("You are offline. Transaction saved as pending and will sync when you are online.")
+                    setAmount("")
+                    setDescription("")
+                    setNote("")
+                    return
+                }
+
+                await appendTransactionToSpreadsheet({
+                    accessToken: googleAccessToken,
+                    spreadsheetId: registry.spreadsheetId,
                 transaction,
             })
 
