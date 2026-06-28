@@ -4,6 +4,7 @@ import { useAuth } from "@/app/api/AuthContext";
 import AuthGate from "@/app/component/AuthGate";
 import BottomNav from "@/app/component/BottomNav";
 import PendingSyncStatus from "@/app/component/PendingSyncStatus";
+import { usePwaControls } from "@/app/component/ServiceWorkerRegister";
 import { usePendingSpreadsheetSync } from "@/app/hooks/usePendingSpreadsheetSync";
 import { useSpreadsheetDashboard } from "@/app/hooks/useSpreadsheetDashboard";
 import { getSpreadsheetUrl } from "@/lib/userSpreadsheet";
@@ -35,6 +36,7 @@ export default function SettingsPage() {
     logOut,
   } = useAuth();
   const { reload, status, error: spreadsheetLoadError } = useSpreadsheetDashboard();
+  const pwa = usePwaControls();
   const {
     pendingCount,
     syncStatus,
@@ -57,6 +59,19 @@ export default function SettingsPage() {
       ? "Connected"
       : "Needs reconnect"
     : "No spreadsheet";
+  const pwaInstallLabel = pwa.isInstalled
+    ? "Installed"
+    : pwa.canInstall
+      ? "Ready to install"
+      : "Use Chrome menu";
+  const pwaUpdateLabel =
+    pwa.updateStatus === "checking"
+      ? "Checking..."
+      : pwa.isUpdateReady
+        ? "Update ready"
+        : pwa.updateStatus === "current"
+          ? "Up to date"
+          : "Not checked";
 
   return (
     <AuthGate>
@@ -174,9 +189,45 @@ export default function SettingsPage() {
               <Smartphone size={18} className="text-soft-orange" />
               <h2 className="text-lg font-bold text-deep-slate">PWA And Offline</h2>
             </div>
-            <p className="text-sm leading-6 text-deep-slate/70">
-              Purrney can be installed from your browser menu. The app shell can open offline,
-              but spreadsheet reads and writes still need an internet connection.
+            <div className="space-y-2">
+              <SettingRow label="Install Status" value={pwaInstallLabel} />
+              <SettingRow label="App Update" value={pwaUpdateLabel} />
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              {!pwa.isInstalled ? (
+                <button
+                  type="button"
+                  onClick={() => void pwa.installApp()}
+                  disabled={!pwa.canInstall}
+                  className="flex items-center justify-center gap-2 rounded-md bg-soft-orange px-4 py-2 text-sm font-semibold text-white disabled:bg-deep-slate/20 disabled:text-deep-slate/50"
+                >
+                  <Download size={16} /> Install Purrney
+                </button>
+              ) : null}
+              {pwa.isUpdateReady ? (
+                <button
+                  type="button"
+                  onClick={pwa.updateApp}
+                  className="flex items-center justify-center gap-2 rounded-md bg-soft-orange px-4 py-2 text-sm font-semibold text-white"
+                >
+                  <RefreshCw size={16} /> Update Now
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void pwa.checkForUpdate()}
+                  disabled={pwa.updateStatus === "checking"}
+                  className="flex items-center justify-center gap-2 rounded-md border border-deep-slate/20 px-4 py-2 text-sm font-semibold text-deep-slate disabled:opacity-50"
+                >
+                  <RefreshCw size={16} />
+                  {pwa.updateStatus === "checking" ? "Checking..." : "Check Update"}
+                </button>
+              )}
+            </div>
+            <p className="mt-3 text-sm leading-6 text-deep-slate/70">
+              Kalau tombol install belum aktif di Chrome Android, buka menu titik tiga lalu pilih
+              Install app atau Add to Home screen. App shell bisa kebuka offline, tapi baca/tulis
+              spreadsheet tetap butuh internet.
             </p>
           </section>
 

@@ -35,11 +35,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ServiceWorkerRegister />
-        <AuthProvider>
-          <PendingSyncManager />
-          {children}
-        </AuthProvider>
+        <ServiceWorkerRegister>
+          <AuthProvider>
+            <PendingSyncManager />
+            {children}
+          </AuthProvider>
+        </ServiceWorkerRegister>
       </body>
     </html>
   );
