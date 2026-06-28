@@ -1,4 +1,4 @@
-const CACHE_NAME = "purrney-app-shell-v1";
+const CACHE_NAME = "purrney-app-shell-v2";
 const APP_SHELL_URLS = [
   "/",
   "/offline.html",
@@ -7,6 +7,7 @@ const APP_SHELL_URLS = [
   "/icons/icon-512.png",
   "/icons/maskable-192.png",
   "/icons/maskable-512.png",
+  "/assets/app-logo.png",
   "/assets/welcome-cat.png",
   "/assets/balance-cat.png",
   "/assets/CatAddTransaction.png",

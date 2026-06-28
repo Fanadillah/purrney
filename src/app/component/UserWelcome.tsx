@@ -17,11 +17,11 @@ const UserWelcome = () => {
       <div className="flex w-full gap-3 sm:gap-4">
         <div className="hidden shrink-0 sm:block">
           <Image
-            src="/assets/welcome-cat.png"
+            src="/assets/app-logo.png"
             width={70}
             height={70}
-            alt="Welcome Cat"
-            className="h-auto w-16 object-cover rounded-b-md"
+            alt="Purrney logo"
+            className="h-auto w-16 rounded-2xl object-cover"
           />
         </div>
         <div className="relative w-full rounded-lg bg-warm-cream p-4 shadow-md">

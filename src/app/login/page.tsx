@@ -21,10 +21,11 @@ export default function LoginPage() {
       <section className="w-full max-w-sm rounded-lg bg-warm-cream p-5 shadow-lg">
         <div className="flex items-center gap-3">
           <Image
-            src="/assets/welcome-cat.png"
-            alt="Purrney welcome"
+            src="/assets/app-logo.png"
+            alt="Purrney logo"
             width={72}
             height={72}
+            className="rounded-2xl"
           />
           <div>
             <h1 className="text-2xl font-bold text-deep-slate">

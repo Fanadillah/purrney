@@ -189,7 +189,6 @@ export default function AccountPage() {
   const [typeFilter, setTypeFilter] = useState<WalletTypeFilter>("all");
   const [statusFilter, setStatusFilter] = useState<WalletStatusFilter>("all");
   const {
-    dashboard,
     sourceData,
     status,
     error,
@@ -198,8 +197,11 @@ export default function AccountPage() {
     reconnectGoogleWorkspace,
   } = useSpreadsheetDashboard();
   const period = getCurrentPeriod();
-  const accounts = sourceData?.accounts ?? [];
-  const transactions = sourceData?.transactions ?? [];
+  const accounts = useMemo(() => sourceData?.accounts ?? [], [sourceData?.accounts]);
+  const transactions = useMemo(
+    () => sourceData?.transactions ?? [],
+    [sourceData?.transactions]
+  );
   const walletCards = useMemo(
     () => createWalletCards({ accounts, transactions, period }),
     [accounts, period, transactions]

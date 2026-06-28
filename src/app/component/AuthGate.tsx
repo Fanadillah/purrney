@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ReactNode } from "react";
 import { useAuth } from "../api/AuthContext";
@@ -15,6 +16,13 @@ export default function AuthGate({ children }: AuthGateProps) {
     return (
       <div className="min-h-screen bg-app-background flex items-center justify-center p-4">
         <div className="w-full max-w-sm rounded-lg bg-warm-cream p-5 text-center shadow-lg">
+          <Image
+            src="/assets/app-logo.png"
+            alt="Purrney logo"
+            width={72}
+            height={72}
+            className="mx-auto mb-3 rounded-2xl"
+          />
           <p className="font-semibold text-deep-slate">Loading your Purrney account...</p>
         </div>
       </div>
@@ -25,6 +33,13 @@ export default function AuthGate({ children }: AuthGateProps) {
     return (
       <div className="min-h-screen bg-app-background flex items-center justify-center p-4">
         <div className="w-full max-w-sm rounded-lg bg-warm-cream p-5 shadow-lg">
+          <Image
+            src="/assets/app-logo.png"
+            alt="Purrney logo"
+            width={72}
+            height={72}
+            className="mb-3 rounded-2xl"
+          />
           <h1 className="text-2xl font-bold text-deep-slate">
             Sign in to <span className="text-soft-orange">Purrney</span>
           </h1>

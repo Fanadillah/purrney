@@ -503,18 +503,24 @@ Susunan desktop:
   - kiri: wallet cards
   - kanan: distribution, quick actions, filter ringkas
 
+### Status Implementasi
+
+- Halaman `/accounts` sudah diubah menjadi `Wallet Center`.
+- Summary wallet, distribution, quick actions, search/filter, empty state, dan wallet card upgrade sudah masuk.
+- Data tetap berasal dari spreadsheet melalui `useSpreadsheetDashboard()`.
+
 ### Acceptance Checklist
 
-- [ ] Accounts punya total wallet summary.
-- [ ] Accounts punya wallet distribution.
-- [ ] Wallet card menampilkan monthly income dan expense.
-- [ ] Wallet card menampilkan last transaction date.
-- [ ] Wallet card punya status aktif/nonaktif.
-- [ ] Ada search wallet.
-- [ ] Ada filter type wallet.
-- [ ] Ada filter status wallet.
-- [ ] Ada quick action Add Wallet.
-- [ ] Ada quick action Transfer.
-- [ ] Empty state memakai `walletCat.png`.
-- [ ] Mobile layout nyaman.
-- [ ] Desktop layout terasa seperti wallet center, bukan daftar sederhana.
+- [x] Accounts punya total wallet summary.
+- [x] Accounts punya wallet distribution.
+- [x] Wallet card menampilkan monthly income dan expense.
+- [x] Wallet card menampilkan last transaction date.
+- [x] Wallet card punya status aktif/nonaktif.
+- [x] Ada search wallet.
+- [x] Ada filter type wallet.
+- [x] Ada filter status wallet.
+- [x] Ada quick action Add Wallet.
+- [x] Ada quick action Transfer.
+- [x] Empty state memakai `walletCat.png`.
+- [x] Mobile layout nyaman.
+- [x] Desktop layout terasa seperti wallet center, bukan daftar sederhana.
