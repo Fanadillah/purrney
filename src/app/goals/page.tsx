@@ -5,7 +5,13 @@ import BottomNav from "@/app/component/BottomNav";
 import { useAuth } from "@/app/api/AuthContext";
 import { useSpreadsheetDashboard } from "@/app/hooks/useSpreadsheetDashboard";
 import {
+  enqueuePendingSpreadsheetWrite,
+  isRetryableSpreadsheetWriteError,
+} from "@/lib/offlineSync";
+import {
+  appendGoalContributionToSpreadsheet,
   appendGoalToSpreadsheet,
+  createGoalContributionRows,
   createGoalRow,
 } from "@/lib/userSpreadsheet";
 import type { GoalSheetRow } from "@/lib/spreadsheetSchema";
@@ -18,7 +24,7 @@ function formatRupiah(value: string) {
 }
 
 export default function GoalsPage() {
-  const { registry, googleAccessToken, markGoogleWorkspaceTokenExpired } = useAuth();
+  const { user, registry, googleAccessToken, markGoogleWorkspaceTokenExpired } = useAuth();
   const {
     sourceData,
     dashboard,
@@ -46,15 +52,37 @@ export default function GoalsPage() {
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [contributionGoalId, setContributionGoalId] = useState("");
+  const [contributionAccountId, setContributionAccountId] = useState("");
+  const [contributionAmount, setContributionAmount] = useState("");
+  const [contributionDate, setContributionDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [contributionNote, setContributionNote] = useState("");
+  const [contributionMessage, setContributionMessage] = useState<string | null>(null);
+  const [contributionStatus, setContributionStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
 
   const numericTarget = Number(targetAmount.replace(/\D/g, ""));
   const numericCurrent = Number(currentAmount.replace(/\D/g, ""));
+  const numericContribution = Number(contributionAmount.replace(/\D/g, ""));
+  const contributionGoal = useMemo(
+    () => activeGoals.find((goal) => goal.id === contributionGoalId) ?? null,
+    [activeGoals, contributionGoalId]
+  );
+  const contributionAccount = useMemo(
+    () => dashboard.accounts.find((account) => account.id === contributionAccountId) ?? null,
+    [contributionAccountId, dashboard.accounts]
+  );
   const canSubmit =
     Boolean(name.trim()) &&
     numericTarget > 0 &&
     Boolean(registry?.spreadsheetId) &&
     Boolean(googleAccessToken) &&
     submitStatus !== "saving";
+  const canContribute =
+    Boolean(contributionGoal) &&
+    Boolean(contributionAccount) &&
+    numericContribution > 0 &&
+    Boolean(registry?.spreadsheetId) &&
+    contributionStatus !== "saving";
 
   function chooseGoal(goalId: string) {
     const goal = activeGoals.find((item) => item.id === goalId) ?? null;
@@ -126,6 +154,88 @@ export default function GoalsPage() {
         saveError instanceof Error ? saveError.message : "Failed to save goal.";
       setSubmitStatus("error");
       setMessage(errorMessage);
+
+      if (/^(401|403)\b/.test(errorMessage)) {
+        markGoogleWorkspaceTokenExpired();
+      }
+    }
+  };
+
+  const handleContributionSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!user || !registry?.spreadsheetId || !contributionGoal || !contributionAccount) {
+      setContributionStatus("error");
+      setContributionMessage("Choose an active goal and wallet before saving a contribution.");
+      return;
+    }
+
+    if (numericContribution <= 0) {
+      setContributionStatus("error");
+      setContributionMessage("Contribution amount must be greater than 0.");
+      return;
+    }
+
+    if (contributionAccount.balance < numericContribution) {
+      setContributionStatus("error");
+      setContributionMessage("Wallet balance is not enough for this contribution.");
+      return;
+    }
+
+    const contribution = createGoalContributionRows({
+      goal: contributionGoal,
+      accountId: contributionAccount.id,
+      amount: numericContribution,
+      date: contributionDate,
+      note: contributionNote,
+    });
+
+    try {
+      setContributionStatus("saving");
+      setContributionMessage(null);
+
+      if (!googleAccessToken) {
+        throw new Error("Reconnect Google Sheets access before saving a contribution.");
+      }
+
+      await appendGoalContributionToSpreadsheet({
+        accessToken: googleAccessToken,
+        spreadsheetId: registry.spreadsheetId,
+        transaction: contribution.transaction,
+        goal: contribution.goal,
+      });
+
+      setContributionStatus("success");
+      setContributionMessage("Contribution saved. Goal progress and wallet balance are now in sync.");
+      setContributionAmount("");
+      setContributionNote("");
+      await reload();
+    } catch (saveError) {
+      const errorMessage =
+        saveError instanceof Error ? saveError.message : "Failed to save contribution.";
+
+      if (isRetryableSpreadsheetWriteError(saveError)) {
+        enqueuePendingSpreadsheetWrite({
+          id: `pending_goal_${contribution.transaction.id}`,
+          uid: user.uid,
+          spreadsheetId: registry.spreadsheetId,
+          kind: "goal_contribution",
+          transaction: contribution.transaction,
+          goal: contribution.goal,
+          createdAt: new Date().toISOString(),
+          attempts: 0,
+          lastError: "",
+        });
+        setContributionStatus("success");
+        setContributionMessage("You are offline. Contribution saved on this device and will sync when reconnected.");
+        setContributionAmount("");
+        setContributionNote("");
+        return;
+      }
+
+      console.error("Error saving goal contribution:", saveError);
+      setContributionStatus("error");
+      setContributionMessage(errorMessage);
 
       if (/^(401|403)\b/.test(errorMessage)) {
         markGoogleWorkspaceTokenExpired();
@@ -247,6 +357,70 @@ export default function GoalsPage() {
             </button>
           </form>
 
+          <form onSubmit={handleContributionSubmit} className="space-y-3 rounded-lg bg-white p-4 shadow-md">
+            <div>
+              <h2 className="text-lg font-bold text-deep-slate">Add Contribution</h2>
+              <p className="text-sm text-deep-slate/60">
+                Move money from a wallet into a goal and keep the activity in transactions.
+              </p>
+            </div>
+            {contributionMessage ? (
+              <div className={`rounded-md p-3 text-sm ${contributionStatus === "success" ? "bg-green-50 text-money-in" : "bg-red-50 text-money-out"}`}>
+                {contributionMessage}
+              </div>
+            ) : null}
+            <select
+              value={contributionGoalId}
+              onChange={(event) => setContributionGoalId(event.target.value)}
+              className="w-full rounded-lg border bg-soft-orange/10 p-3 text-deep-slate"
+            >
+              <option value="">Choose goal</option>
+              {activeGoals.map((goal) => (
+                <option key={goal.id} value={goal.id}>
+                  {goal.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={contributionAccountId}
+              onChange={(event) => setContributionAccountId(event.target.value)}
+              className="w-full rounded-lg border bg-soft-orange/10 p-3 text-deep-slate"
+            >
+              <option value="">Choose source wallet</option>
+              {dashboard.accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} - Rp {account.balance.toLocaleString("id-ID")}
+                </option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={contributionAmount}
+              onChange={(event) => setContributionAmount(formatRupiah(event.target.value))}
+              placeholder="Contribution amount"
+              className="w-full rounded-lg border p-3 text-right text-xl font-bold focus:outline-none focus:ring-2 focus:ring-soft-orange"
+            />
+            <input
+              type="date"
+              value={contributionDate}
+              onChange={(event) => setContributionDate(event.target.value)}
+              className="w-full rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-soft-orange"
+            />
+            <textarea
+              value={contributionNote}
+              onChange={(event) => setContributionNote(event.target.value)}
+              placeholder="Optional contribution note"
+              className="min-h-20 w-full rounded-lg border p-3 focus:outline-none focus:ring-2 focus:ring-soft-orange"
+            />
+            <button
+              type="submit"
+              disabled={!canContribute}
+              className="w-full rounded-xl bg-soft-orange py-3 font-semibold text-white shadow-lg disabled:opacity-50"
+            >
+              {contributionStatus === "saving" ? "Saving Contribution..." : "Add Contribution"}
+            </button>
+          </form>
+
           <section>
             <h2 className="mb-2 text-xl font-bold text-deep-slate">Active Goals</h2>
             {activeGoals.length === 0 ? (
@@ -261,20 +435,34 @@ export default function GoalsPage() {
                   : 0;
 
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={goal.id}
-                    onClick={() => chooseGoal(goal.id)}
                     className="w-full rounded-md bg-warm-cream p-3 text-left shadow"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-deep-slate">{goal.name}</p>
                       <p className="text-sm font-semibold text-soft-orange">{progress}%</p>
                     </div>
                     <p className="mt-1 text-sm text-deep-slate">
                       Rp {goal.currentAmount.toLocaleString("id-ID")} / Rp {goal.targetAmount.toLocaleString("id-ID")}
                     </p>
-                  </button>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => chooseGoal(goal.id)}
+                        className="rounded-md border border-deep-slate/20 px-3 py-2 text-sm font-semibold text-deep-slate"
+                      >
+                        Edit Goal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContributionGoalId(goal.id)}
+                        className="rounded-md bg-soft-orange px-3 py-2 text-sm font-semibold text-white"
+                      >
+                        Add Contribution
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>

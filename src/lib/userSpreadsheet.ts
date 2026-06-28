@@ -483,6 +483,30 @@ export async function appendTransferToSpreadsheet({
   });
 }
 
+export async function appendGoalContributionToSpreadsheet({
+  accessToken,
+  spreadsheetId,
+  transaction,
+  goal,
+}: {
+  accessToken: string;
+  spreadsheetId: string;
+  transaction: TransactionSheetRow;
+  goal: GoalSheetRow;
+}) {
+  await appendTransactionToSpreadsheet({
+    accessToken,
+    spreadsheetId,
+    transaction,
+  });
+
+  return appendGoalToSpreadsheet({
+    accessToken,
+    spreadsheetId,
+    goal,
+  });
+}
+
 export function createTransactionId() {
   const now = new Date();
   const timestamp = now
@@ -686,6 +710,41 @@ export function createTransactionRow({
     transferGroupId: "",
     createdAt: timestamp,
     updatedAt: timestamp,
+  };
+}
+
+export function createGoalContributionRows({
+  goal,
+  accountId,
+  amount,
+  date,
+  note = "",
+}: {
+  goal: GoalSheetRow;
+  accountId: string;
+  amount: number;
+  date: string;
+  note?: string;
+}) {
+  const timestamp = new Date().toISOString();
+  const nextCurrentAmount = goal.currentAmount + amount;
+
+  return {
+    transaction: createTransactionRow({
+      date,
+      description: `Goal Contribution - ${goal.name}`,
+      type: "out",
+      accountId,
+      categoryValue: "goal_contribution",
+      amount,
+      note: note.trim() || `Contribution to ${goal.name}`,
+    }),
+    goal: {
+      ...goal,
+      currentAmount: nextCurrentAmount,
+      accountId: goal.accountId || accountId,
+      updatedAt: timestamp,
+    },
   };
 }
 

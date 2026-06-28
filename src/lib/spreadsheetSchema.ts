@@ -310,6 +310,15 @@ export const DEFAULT_CATEGORIES: CategorySheetRow[] = [
     isActive: true,
     sortOrder: 190,
   },
+  {
+    id: "cat_goal_contribution",
+    value: "goal_contribution",
+    label: "Goal Contribution",
+    kind: "expense",
+    colorClass: "bg-soft-orange",
+    isActive: true,
+    sortOrder: 200,
+  },
 ];
 
 export const DEFAULT_BUDGETS: BudgetSheetRow[] = [];

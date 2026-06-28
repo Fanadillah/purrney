@@ -8,6 +8,9 @@ import ProgressBar from "./component/ProgressBar";
 import DashboardGoals from "./component/DashboardGoals";
 import QuickMenu from "./component/QuickMenu";
 import DashboardSnapshot from "./component/DashboardSnapshot";
+import CashflowInsight from "./component/CashflowInsight";
+import CalendarActivity from "./component/CalendarActivity";
+import DashboardEmptyState from "./component/DashboardEmptyState";
 import { useSpreadsheetDashboard } from "./hooks/useSpreadsheetDashboard";
 import { calculateDashboardSummary } from "@/lib/dashboardSummary";
 
@@ -24,13 +27,20 @@ export default function PurrneyHome() {
     reconnectGoogleWorkspace,
   } = useSpreadsheetDashboard();
   const summary = useMemo(() => calculateDashboardSummary(dashboard), [dashboard]);
+  const activeGoals = useMemo(
+    () => sourceData?.goals.filter((goal) => goal.isActive) ?? [],
+    [sourceData?.goals]
+  );
+  const activeBudgets = useMemo(
+    () => sourceData?.budgets.filter((budget) => budget.isActive) ?? [],
+    [sourceData?.budgets]
+  );
   const snapshot = useMemo(() => {
     const netCashflow = summary.income - summary.expense;
     const transactionCount = dashboard.transactions.length;
     const budgetAmount = dashboard.progressData.reduce((sum, budget) => sum + budget.amount, 0);
     const budgetMax = dashboard.progressData.reduce((sum, budget) => sum + budget.amountMax, 0);
     const budgetUsage = budgetMax > 0 ? Math.round((budgetAmount / budgetMax) * 100) : 0;
-    const activeGoals = sourceData?.goals.filter((goal) => goal.isActive) ?? [];
     const goalProgress =
       activeGoals.length > 0
         ? Math.round(
@@ -47,7 +57,12 @@ export default function PurrneyHome() {
       budgetUsage,
       goalProgress,
     };
-  }, [dashboard.progressData, dashboard.transactions.length, sourceData?.goals, summary.expense, summary.income]);
+  }, [activeGoals, dashboard.progressData, dashboard.transactions.length, summary.expense, summary.income]);
+  const showEmptyState =
+    status === "success" &&
+    dashboard.transactions.length === 0 &&
+    activeGoals.length === 0 &&
+    activeBudgets.length === 0;
 
   return (
     <div className="min-h-screen bg-app-background font-sans md:pl-20">
@@ -90,11 +105,12 @@ export default function PurrneyHome() {
             </ul>
           </div>
         ) : null}
-        {isEmpty ? (
+        {isEmpty && !showEmptyState ? (
           <div className="mx-4 mb-3 rounded-md bg-warm-cream p-3 text-sm text-deep-slate shadow">
             Your spreadsheet is connected. Add your first transaction to start seeing activity here.
           </div>
         ) : null}
+        {showEmptyState ? <DashboardEmptyState /> : null}
         <section className="grid gap-0 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-4">
             <BalanceSummary
@@ -102,16 +118,23 @@ export default function PurrneyHome() {
               income={summary.income}
               expense={summary.expense}
             />
+            <CashflowInsight income={summary.income} expense={summary.expense} />
             <DashboardSnapshot
               netCashflow={snapshot.netCashflow}
               transactionCount={snapshot.transactionCount}
               budgetUsage={snapshot.budgetUsage}
               goalProgress={snapshot.goalProgress}
             />
-            <ProgressBar data={dashboard.progressData} />
+            <div className="hidden xl:block">
+              <ProgressBar data={dashboard.progressData} />
+            </div>
           </div>
           <div className="space-y-4">
             <QuickMenu />
+            <CalendarActivity transactions={dashboard.transactions} />
+            <div className="xl:hidden">
+              <ProgressBar data={dashboard.progressData} />
+            </div>
             <DashboardGoals goals={sourceData?.goals ?? []} />
             <RecentTransactions data={dashboard.transactions} />
           </div>

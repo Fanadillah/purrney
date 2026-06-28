@@ -1,4 +1,5 @@
 import {
+  DEFAULT_CATEGORIES,
   SHEET_HEADERS,
   SHEET_NAMES,
   SPREADSHEET_SCHEMA_VERSION,
@@ -105,6 +106,9 @@ const sheetOrder: SheetName[] = [
   "budgets",
   "goals",
 ];
+const builtInCategoriesByValue = new Map(
+  DEFAULT_CATEGORIES.map((category) => [category.value, category])
+);
 
 function getAuthHeaders(accessToken: string) {
   return {
@@ -390,7 +394,11 @@ function validateData(data: Omit<ParsedSpreadsheetData, "warnings">) {
       warnings.push(`Transaction ${transaction.id} references missing account ${transaction.accountId}.`);
     }
 
-    if (!transaction.transferGroupId && !categoryValues.has(transaction.categoryValue)) {
+    if (
+      !transaction.transferGroupId &&
+      !categoryValues.has(transaction.categoryValue) &&
+      !builtInCategoriesByValue.has(transaction.categoryValue)
+    ) {
       warnings.push(`Transaction ${transaction.id} references missing category ${transaction.categoryValue}.`);
     }
 
@@ -400,7 +408,7 @@ function validateData(data: Omit<ParsedSpreadsheetData, "warnings">) {
   });
 
   data.budgets.forEach((budget) => {
-    if (!categoryValues.has(budget.categoryValue)) {
+    if (!categoryValues.has(budget.categoryValue) && !builtInCategoriesByValue.has(budget.categoryValue)) {
       warnings.push(`Budget ${budget.id} references missing category ${budget.categoryValue}.`);
     }
   });
@@ -530,7 +538,10 @@ export function mapSpreadsheetDataToDashboard({
 }: ParsedSpreadsheetData): DashboardData {
   const activeAccounts = accounts.filter((account) => account.isActive);
   const activeCategories = categories.filter((category) => category.isActive);
-  const categoryByValue = new Map(activeCategories.map((category) => [category.value, category]));
+  const categoryByValue = new Map([
+    ...builtInCategoriesByValue,
+    ...activeCategories.map((category) => [category.value, category] as const),
+  ]);
 
   const dashboardAccounts = activeAccounts.map((account) => {
     const transactionDelta = transactions
@@ -551,7 +562,7 @@ export function mapSpreadsheetDataToDashboard({
   const dashboardTransactions = transactions.map((transaction) => ({
     id: transaction.id,
     description: transaction.description,
-    category: transaction.categoryValue,
+    category: categoryByValue.get(transaction.categoryValue)?.label ?? transaction.categoryValue,
     amount: transaction.amount,
     date: transaction.date,
     type: transaction.type,
@@ -583,7 +594,7 @@ export function mapSpreadsheetDataToDashboard({
 
   return {
     accounts: dashboardAccounts,
-    categories: activeCategories.map((category) => ({
+    categories: Array.from(categoryByValue.values()).map((category) => ({
       value: category.value,
       label: category.label,
       kind: category.kind,

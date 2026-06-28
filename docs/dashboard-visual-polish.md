@@ -7,12 +7,13 @@ Dokumen ini menyimpan evaluasi dan rencana polish visual dashboard Purrney untuk
 Dashboard sudah punya fondasi yang kuat secara fungsi:
 
 - data sudah real dari Google Spreadsheet
+- data terakhir disimpan di local device sebagai fallback saat offline
 - balance summary tampil
 - income dan expense tampil
 - quick menu tersedia
 - budget progress tampil
 - goals tampil
-- recent transactions tampil
+- recent transactions tampil dan punya link ke halaman semua transaksi
 - layout sudah responsif dasar
 
 Secara rasa brand, dashboard juga sudah punya karakter:
@@ -159,6 +160,196 @@ Urutan dashboard yang disarankan:
 5. Budget Overview
 6. Goals Overview
 7. Recent Transactions
+
+## Phase 13 Dashboard Update
+
+Perubahan yang sudah masuk dari Phase 13:
+
+- Recent transactions sekarang mengarah ke `/transactions` lewat action `View All`.
+- Kontribusi goal tampil sebagai transaksi expense dengan label `Goal Contribution`.
+- Saldo wallet berkurang dari transaksi kontribusi, sementara progress goal naik dari snapshot goal terbaru.
+- Dashboard memakai cache spreadsheet terakhir dari local device ketika load Google Sheets gagal karena koneksi.
+- Page `/transactions` menjadi tempat user melihat seluruh riwayat, sedangkan dashboard tetap menampilkan 5 transaksi terbaru.
+
+## Dashboard Insight Upgrade
+
+Bagian ini adalah rencana lanjutan setelah visual polish dasar selesai. Tujuannya bukan membuat dashboard menjadi halaman reports kedua, tetapi menambah lapisan insight yang cepat dibaca user.
+
+Status implementasi:
+
+- [x] Cashflow Insight Card sudah tampil setelah Balance Hero.
+- [x] Donut chart `Income vs Expense` bulan berjalan sudah tampil di Cashflow Insight.
+- [x] Calendar Activity bulan berjalan sudah tampil di dashboard.
+- [x] Klik tanggal di Calendar Activity menampilkan pop-up kecil berisi transaksi di hari itu.
+- [x] Empty state dashboard memakai `NoTransactionCat.png` ketika transaksi, budget, dan goals masih kosong.
+- [x] Income dan expense pada dashboard dihitung untuk bulan berjalan.
+- [x] Layout dashboard mobile dan desktop sudah diurutkan ulang mengikuti insight upgrade.
+
+Dashboard sebaiknya menjawab tiga pertanyaan dalam satu layar:
+
+- uang saya sekarang sehat atau tidak?
+- aktivitas keuangan saya bulan ini ramai atau sepi?
+- hal apa yang perlu saya waspadai?
+
+### 1. Cashflow Insight Card
+
+Tujuan:
+
+- memberi komentar singkat terhadap kondisi cashflow user
+- membuat angka terasa lebih mudah dimengerti
+- memperkuat karakter Purrney sebagai finance companion yang friendly
+
+Isi:
+
+- reaction text sederhana seperti `happyCat.png` untuk happy, `AnxiousCat.png` untuk datar, atau `sadCat.png` untuk sedih, dan NoTransactionCat.png untuk belum ada data
+- headline pendek
+- komentar cashflow 1 kalimat
+- net cashflow bulan ini
+- income dan expense bulan ini
+
+Contoh copy:
+
+- `Cashflow kamu positif bulan ini. Nice, masih ada ruang buat nabung.`
+- `Expense mulai mendekati income. Coba cek kategori paling besar.`
+- `Cashflow negatif. Bulan ini uang keluar lebih besar dari masuk.`
+- `Belum ada data bulan ini. Tambah transaksi pertama untuk mulai membaca pola.`
+
+Rules awal:
+
+- jika income dan expense masih `0`, tampilkan empty insight
+- jika net cashflow lebih dari `20%` income, status `healthy`
+- jika net cashflow positif tetapi kurang dari atau sama dengan `20%` income, status `thin`
+- jika net cashflow negatif, status `warning`
+- jika expense lebih dari `80%` income, tampilkan warning ringan walaupun masih positif
+
+Visual:
+
+- card compact
+- reaction dibuat sebagai elemen kecil, bukan emoji besar
+- tone warna mengikuti status: hijau untuk sehat, orange untuk tipis, merah untuk warning
+- komentar harus pendek agar aman di mobile
+
+### 2. Dashboard Donut Chart
+
+Tujuan:
+
+- memberi visual cepat tentang perbandingan income dan expense
+- membuat dashboard terasa lebih modern
+- memberi konteks langsung sebelum user membuka Reports
+
+Rekomendasi chart:
+
+- gunakan donut chart untuk `Income vs Expense` bulan berjalan
+- jangan pakai category donut di dashboard sebagai default, karena category breakdown sudah lebih cocok di Reports
+- jika user belum punya transaksi bulan ini, tampilkan empty donut sederhana
+
+Data:
+
+- income bulan ini
+- expense bulan ini
+- transfer tidak dihitung sebagai income atau expense
+- periode mengikuti bulan berjalan
+
+Visual:
+
+- donut ukuran kecil sampai medium
+- income warna hijau
+- expense warna merah/orange
+- center label berisi `Cashflow` atau nominal net
+- legend maksimal 2 item
+- tidak perlu interaksi kompleks di fase awal
+
+Penempatan:
+
+- idealnya masuk di dalam `Cashflow Insight Card`
+- di mobile: komentar di atas, donut di bawah atau samping jika cukup ruang
+- di desktop: komentar kiri, donut kanan
+
+### 3. Calendar Activity
+
+Tujuan:
+
+- menunjukkan ritme aktivitas transaksi user selama bulan berjalan
+- membantu user melihat apakah pencatatan sudah konsisten
+- membuat dashboard terasa lebih hidup tanpa menambah terlalu banyak teks
+
+Isi:
+
+- kalender mini bulan berjalan
+- tanggal dengan transaksi diberi marker
+- ringkasan jumlah hari aktif
+- ringkasan total transaksi bulan ini
+
+Rules marker:
+
+- tidak ada transaksi: kosong
+- hanya income: marker hijau
+- hanya expense: marker merah/orange
+- income dan expense di hari yang sama: marker campuran atau warna netral
+- transfer bisa memakai marker biru/netral jika nanti diperlukan
+
+Versi awal:
+
+- kalender visual saja
+- klik tanggal membuka ringkasan transaksi harian
+- tampilkan maksimal bulan berjalan
+
+Versi lanjutan:
+
+- tooltip/summary harian
+- heat intensity berdasarkan total nominal atau jumlah transaksi
+
+Visual:
+
+- card compact
+- grid 7 kolom
+- touch target tetap nyaman
+- label hari pendek: `S M T W T F S` atau versi Indonesia jika seluruh app sudah dilokalkan
+- jangan terlalu ramai dengan angka nominal
+
+### 4. Posisi Di Layout Dashboard
+
+Urutan dashboard setelah upgrade:
+
+1. Compact Header
+2. Balance Hero
+3. Cashflow Insight + Donut
+4. Month Snapshot
+5. Compact Quick Actions
+6. Calendar Activity
+7. Budget Overview
+8. Goals Overview
+9. Recent Transactions
+
+Layout desktop:
+
+- kolom kiri:
+  - Balance Hero
+  - Cashflow Insight + Donut
+  - Budget Overview
+- kolom kanan:
+  - Month Snapshot
+  - Quick Actions
+  - Calendar Activity
+  - Goals Overview
+  - Recent Transactions
+
+Layout mobile:
+
+- Cashflow Insight tampil setelah Balance Hero
+- donut boleh stack di bawah komentar
+- Calendar Activity tampil setelah Quick Actions atau setelah Month Snapshot
+
+### 5. Prinsip Batasan
+
+- Dashboard tetap untuk insight cepat, bukan analisis detail.
+- Reports tetap menjadi tempat category breakdown, biggest transactions, dan analisis lengkap.
+- Chart di dashboard maksimal satu donut agar tidak terlalu ramai.
+- Komentar cashflow harus berdasarkan rule yang transparan, bukan random.
+- Empty state harus tetap friendly untuk user baru.
+- Semua insight harus berasal dari spreadsheet user, tanpa data dummy.
+
+- Disaat belum ada data transaksi apapun atau goals, atau budget, munculin gambar NoTransactionCat.png dengan kalimat dibawahnya, kamu belum ada Transaksaksi apapun
 
 ## Detail Section
 
@@ -321,6 +512,11 @@ Mobile:
 - [x] Spacing antar section konsisten.
 - [x] Desktop layout terasa dirancang, bukan hanya dilebarkan.
 - [x] Mobile tidak terasa terlalu penuh.
+- [x] Cashflow Insight Card tampil.
+- [x] Donut chart income vs expense tampil.
+- [x] Calendar Activity tampil.
+- [x] Calendar Activity bisa menampilkan transaksi per tanggal.
+- [x] Empty state memakai `NoTransactionCat.png`.
 - [x] Tidak ada text overflow.
 - [x] Touch target tetap minimal 44px.
 - [x] `npm run lint` sukses.

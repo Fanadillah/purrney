@@ -381,3 +381,140 @@ Isi helper:
 - `calculateWalletBreakdown(accounts)`
 
 Dengan begitu halaman `/reports` tetap fokus ke UI, bukan penuh rumus.
+
+## Label Pembaruan Halaman: Accounts / Wallet Center
+
+Catatan ini menyimpan ide pembaruan halaman `/accounts` agar tidak hanya menjadi daftar wallet sederhana, tetapi menjadi pusat kontrol wallet user.
+
+### Tujuan Pembaruan
+
+Halaman accounts sebaiknya membantu user menjawab:
+
+- total uang saya tersebar di wallet mana saja?
+- wallet mana yang paling besar saldonya?
+- wallet mana yang aktif atau tidak aktif?
+- wallet mana yang punya aktivitas income/expense bulan ini?
+- kapan terakhir wallet dipakai?
+- tambahkan insight dengan image cat, wallet mana yang seing di pakai di bulan ini
+
+### Section Yang Disarankan
+
+#### 1. Total Wallet Summary
+
+Isi:
+
+- total balance semua wallet aktif
+- jumlah wallet aktif
+- wallet dengan saldo terbesar
+- monthly inflow dan outflow semua wallet
+
+Tampilan:
+
+- 3 sampai 4 metric card kecil
+- mobile 2 kolom
+- desktop 4 kolom
+- total balance tetap paling dominan
+
+#### 2. Wallet Distribution
+
+Tujuan:
+
+- menunjukkan persentase saldo per wallet
+- membantu user cepat melihat uang paling banyak ada di mana
+
+Tampilan:
+
+- horizontal distribution bar atau donut kecil
+- tampilkan nama wallet, saldo, dan persentase
+- wallet dengan saldo terbesar muncul paling atas
+
+#### 3. Wallet Cards Upgrade
+
+Setiap wallet card menampilkan:
+
+- nama wallet
+- tipe wallet: Cash, Bank, atau E-wallet
+- saldo sekarang
+- income bulan ini
+- expense bulan ini
+- last transaction date
+- badge status aktif/nonaktif
+- warning ringan jika saldo `<= 0`
+
+Tampilan:
+
+- card compact
+- amount tetap mudah discan
+- income hijau, expense merah
+- action utama: buka wallet detail
+
+#### 4. Quick Actions
+
+Action yang disarankan:
+
+- Add Wallet
+- Transfer
+- View All Transactions
+
+Catatan:
+
+- `Manage Categories` tetap lebih cocok di Settings agar navigasi accounts tidak terlalu ramai.
+
+#### 5. Search Dan Filter
+
+Filter awal:
+
+- search by wallet name
+- filter type: all, cash, bank, e-wallet
+- filter status: active, inactive
+
+Behavior:
+
+- filter berjalan client-side dari data spreadsheet yang sudah dimuat
+- empty result tampil jelas jika tidak ada wallet yang cocok
+
+#### 6. Empty State
+
+Jika wallet masih default atau belum ada wallet tambahan:
+
+- tampilkan asset `walletCat.png`
+- copy: `Belum ada wallet tambahan`
+- CTA: `Add Wallet`
+
+### Layout Mobile
+
+Urutan mobile:
+
+1. Header Accounts
+2. Total Wallet Summary
+3. Quick Actions
+4. Wallet Distribution
+5. Search dan Filter
+6. Wallet Cards
+7. Bottom Navigation
+
+### Layout Desktop
+
+Susunan desktop:
+
+- Header full width
+- Summary full width
+- Grid 2 kolom:
+  - kiri: wallet cards
+  - kanan: distribution, quick actions, filter ringkas
+
+### Acceptance Checklist
+
+- [ ] Accounts punya total wallet summary.
+- [ ] Accounts punya wallet distribution.
+- [ ] Wallet card menampilkan monthly income dan expense.
+- [ ] Wallet card menampilkan last transaction date.
+- [ ] Wallet card punya status aktif/nonaktif.
+- [ ] Ada search wallet.
+- [ ] Ada filter type wallet.
+- [ ] Ada filter status wallet.
+- [ ] Ada quick action Add Wallet.
+- [ ] Ada quick action Transfer.
+- [ ] Empty state memakai `walletCat.png`.
+- [ ] Mobile layout nyaman.
+- [ ] Desktop layout terasa seperti wallet center, bukan daftar sederhana.

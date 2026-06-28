@@ -7,8 +7,9 @@ import PendingSyncStatus from "@/app/component/PendingSyncStatus";
 import { usePendingSpreadsheetSync } from "@/app/hooks/usePendingSpreadsheetSync";
 import { useSpreadsheetDashboard } from "@/app/hooks/useSpreadsheetDashboard";
 import { getSpreadsheetUrl } from "@/lib/userSpreadsheet";
-import { Database, LogOut, RefreshCw, Sheet, Smartphone, UserRound } from "lucide-react";
+import { Database, Download, FileText, LogOut, RefreshCw, Sheet, Smartphone, Tags, UserRound } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 function SettingRow({ label, value }: { label: string; value: string }) {
   return (
@@ -48,6 +49,9 @@ export default function SettingsPage() {
   const spreadsheetUrl =
     registry?.spreadsheetUrl ??
     (registry?.spreadsheetId ? getSpreadsheetUrl(registry.spreadsheetId) : "");
+  const spreadsheetExportUrl = registry?.spreadsheetId
+    ? `https://docs.google.com/spreadsheets/d/${registry.spreadsheetId}/export?format=xlsx`
+    : "";
   const connectionLabel = registry?.spreadsheetId
     ? googleWorkspacePermissionStatus === "granted"
       ? "Connected"
@@ -157,6 +161,12 @@ export default function SettingsPage() {
             <SettingRow label="Currency" value="IDR" />
             <SettingRow label="Timezone" value="Asia/Jakarta" />
             <SettingRow label="Storage" value="Google Spreadsheet" />
+            <Link
+              href="/categories"
+              className="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-deep-slate shadow-sm transition hover:text-soft-orange"
+            >
+              <Tags size={16} className="text-soft-orange" /> Manage Categories
+            </Link>
           </section>
 
           <section className="rounded-lg bg-warm-cream p-4 shadow-md">
@@ -168,6 +178,44 @@ export default function SettingsPage() {
               Purrney can be installed from your browser menu. The app shell can open offline,
               but spreadsheet reads and writes still need an internet connection.
             </p>
+          </section>
+
+          <section className="rounded-lg bg-warm-cream p-4 shadow-md lg:col-span-2">
+            <div className="mb-4 flex items-center gap-2">
+              <Download size={18} className="text-soft-orange" />
+              <h2 className="text-lg font-bold text-deep-slate">Backup And Recovery</h2>
+            </div>
+            <p className="text-sm leading-6 text-deep-slate/70">
+              Your spreadsheet is the source of truth. Keep a copy before big changes or before
+              inviting beta users.
+            </p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              {spreadsheetExportUrl ? (
+                <a
+                  href={spreadsheetExportUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-md bg-soft-orange px-4 py-2 text-sm font-semibold text-white"
+                >
+                  <Download size={16} /> Download XLSX
+                </a>
+              ) : null}
+              {spreadsheetUrl ? (
+                <a
+                  href={spreadsheetUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-md border border-soft-orange px-4 py-2 text-sm font-semibold text-soft-orange"
+                >
+                  <Sheet size={16} /> Open Source Sheet
+                </a>
+              ) : null}
+            </div>
+            <div className="mt-3 rounded-md bg-white p-3 text-sm text-deep-slate/70">
+              If the spreadsheet is deleted from Google Drive, restore it from Drive Trash or use
+              a backup copy. A full in-app reconnect-to-existing-sheet flow is planned as a future
+              recovery improvement.
+            </div>
           </section>
 
           <section className="rounded-lg bg-warm-cream p-4 shadow-md lg:col-span-2">
@@ -190,13 +238,27 @@ export default function SettingsPage() {
 
           <section className="rounded-lg bg-white p-4 shadow-md lg:col-span-2">
             <h2 className="text-lg font-bold text-deep-slate">Account Actions</h2>
-            <button
-              type="button"
-              onClick={() => void logOut()}
-              className="mt-4 flex items-center justify-center gap-2 rounded-md border border-money-out px-4 py-2 text-sm font-semibold text-money-out"
-            >
-              <LogOut size={16} /> Sign Out
-            </button>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/privacy"
+                className="flex items-center justify-center gap-2 rounded-md border border-deep-slate/20 px-4 py-2 text-sm font-semibold text-deep-slate"
+              >
+                <FileText size={16} /> Privacy
+              </Link>
+              <Link
+                href="/terms"
+                className="flex items-center justify-center gap-2 rounded-md border border-deep-slate/20 px-4 py-2 text-sm font-semibold text-deep-slate"
+              >
+                <FileText size={16} /> Terms
+              </Link>
+              <button
+                type="button"
+                onClick={() => void logOut()}
+                className="flex items-center justify-center gap-2 rounded-md border border-money-out px-4 py-2 text-sm font-semibold text-money-out"
+              >
+                <LogOut size={16} /> Sign Out
+              </button>
+            </div>
           </section>
         </main>
 

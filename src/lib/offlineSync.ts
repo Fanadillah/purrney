@@ -1,5 +1,6 @@
-import type { TransactionSheetRow } from "./spreadsheetSchema";
+import type { GoalSheetRow, TransactionSheetRow } from "./spreadsheetSchema";
 import {
+  appendGoalContributionToSpreadsheet,
   appendTransactionToSpreadsheet,
   appendTransferToSpreadsheet,
 } from "./userSpreadsheet";
@@ -22,6 +23,17 @@ export type PendingSpreadsheetWrite =
       kind: "transfer";
       fromTransaction: TransactionSheetRow;
       toTransaction: TransactionSheetRow;
+      createdAt: string;
+      attempts: number;
+      lastError: string;
+    }
+  | {
+      id: string;
+      uid: string;
+      spreadsheetId: string;
+      kind: "goal_contribution";
+      transaction: TransactionSheetRow;
+      goal: GoalSheetRow;
       createdAt: string;
       attempts: number;
       lastError: string;
@@ -160,12 +172,19 @@ export async function syncPendingSpreadsheetWrites({
             spreadsheetId,
             transaction: item.transaction,
           });
-        } else {
+        } else if (item.kind === "transfer") {
           await appendTransferToSpreadsheet({
             accessToken,
             spreadsheetId,
             fromTransaction: item.fromTransaction,
             toTransaction: item.toTransaction,
+          });
+        } else {
+          await appendGoalContributionToSpreadsheet({
+            accessToken,
+            spreadsheetId,
+            transaction: item.transaction,
+            goal: item.goal,
           });
         }
 

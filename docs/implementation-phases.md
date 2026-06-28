@@ -311,15 +311,15 @@ Output phase:
 
 Tujuan: app siap dipakai lebih luas dengan risiko lebih rendah.
 
-- [ ] Review Google OAuth consent.
-- [ ] Review Firebase security rules.
-- [ ] Review env production di Vercel.
-- [ ] Review error logging.
-- [ ] Review quota Google API.
-- [ ] Tambahkan halaman privacy policy.
-- [ ] Tambahkan halaman terms jika dibutuhkan.
-- [ ] Tambahkan recovery flow untuk spreadsheet rusak.
-- [ ] Tambahkan backup atau export helper.
+- [x] Review Google OAuth consent.
+- [x] Review Firebase security rules.
+- [x] Review env production di Vercel.
+- [x] Review error logging.
+- [x] Review quota Google API.
+- [x] Tambahkan halaman privacy policy.
+- [x] Tambahkan halaman terms jika dibutuhkan.
+- [x] Tambahkan recovery flow untuk spreadsheet rusak.
+- [x] Tambahkan backup atau export helper.
 - [ ] Uji dengan user baru dari nol.
 
 Output phase:
@@ -327,6 +327,93 @@ Output phase:
 - App lebih siap untuk dipakai di luar lingkungan development.
 - Risiko auth, permission, dan data recovery lebih terkendali.
 - Purrney siap masuk tahap beta.
+
+## Phase 13: Goal Contribution Flow
+
+Tujuan: user bisa memasukkan dana ke goals dengan flow yang jelas, dan fitur pengaturan data pendukung seperti categories lebih mudah ditemukan dari UI.
+
+Masalah saat ini:
+
+- Dana goal masih dimasukkan dengan edit manual field `Current amount`.
+- Saldo wallet belum otomatis berkurang saat dana dialokasikan ke goal.
+- Tidak ada riwayat kontribusi goal.
+- User sulit tahu kapan dan dari wallet mana dana goal ditambahkan.
+
+Scope fitur:
+
+- [x] Tambahkan akses UI ke halaman Categories dari Settings.
+- [x] Buat menu `Manage Categories` di halaman Settings.
+- [x] Pastikan user bisa menemukan fitur tambah/edit category tanpa mengetik URL manual.
+- [x] Buat action `Add Contribution` pada goal aktif.
+- [x] Pilih goal tujuan.
+- [x] Pilih wallet sumber dana.
+- [x] Input nominal kontribusi.
+- [x] Validasi nominal lebih dari `0`.
+- [x] Validasi wallet sumber masih aktif.
+- [x] Validasi saldo wallet cukup jika aturan saldo minus tidak diizinkan.
+- [x] Tambahkan dana ke `currentAmount` goal.
+- [x] Kurangi saldo efektif wallet melalui transaksi atau ledger yang konsisten.
+- [x] Catat riwayat kontribusi goal.
+- [x] Refresh dashboard, goals, wallet detail, dan reports setelah save.
+- [x] Tampilkan success, loading, dan error state.
+- [x] Pastikan offline sync mendukung kontribusi goal jika user sedang offline.
+- [x] Tambahkan Page All Transaction, agar user dapat Liat semua Transaksi
+- [x] Perkuat Fitur Offline, jika user offline, data terakhir di load akan tetap ada, dan dapat disimpan sementara di local device user, dan disaat reconnect, dia bakal langsung simpan di spreadsheet user
+
+Status implementasi:
+
+- Kontribusi goal memakai transaksi khusus `goal_contribution` di sheet `transactions`.
+- Default category `Goal Contribution` ditambahkan untuk spreadsheet baru.
+- Saat kontribusi disimpan, app append transaksi `out` dari wallet sumber dan append snapshot goal dengan `currentAmount` terbaru.
+- Jika koneksi bermasalah, kontribusi masuk pending sync lokal dan akan dikirim saat online.
+- Dashboard memakai cache data spreadsheet terakhir dari device agar tetap bisa dibaca ketika offline.
+- Halaman `/transactions` menampilkan semua riwayat transaksi.
+
+Pilihan desain data:
+
+1. Simpan kontribusi sebagai transaksi khusus di sheet `transactions`.
+   - type: `out`
+   - category: kategori khusus seperti `goal_contribution`
+   - accountId: wallet sumber
+   - metadata/description berisi nama goal
+   - goal `currentAmount` tetap perlu ikut naik
+
+2. Tambah sheet baru `goal_contributions`.
+   - lebih rapi untuk riwayat goal
+   - butuh perubahan schema spreadsheet
+   - butuh mapper dan migration schema
+
+Rekomendasi awal:
+
+- Untuk MVP, gunakan transaksi khusus agar saldo wallet otomatis ikut dihitung lewat mekanisme transaksi yang sudah ada.
+- Tambahkan kategori default `goal_contribution` atau treatment khusus agar kontribusi goal tidak rancu dengan expense konsumtif.
+- Untuk versi lanjutan, pertimbangkan sheet `goal_contributions` jika user butuh riwayat goal yang lebih detail.
+
+UX yang disarankan:
+
+- Categories:
+  - masuk lewat Settings
+  - gunakan menu `Manage Categories`
+  - jangan masuk bottom navigation utama agar nav tetap sederhana
+- Di halaman Goals, setiap goal aktif punya tombol `Add Contribution`.
+- Modal/form contribution berisi:
+  - goal tujuan
+  - wallet sumber
+  - nominal
+  - tanggal
+  - catatan opsional
+- Setelah save:
+  - progress goal naik
+  - wallet detail menampilkan aktivitas kontribusi
+  - recent transactions bisa menampilkan label `Goal Contribution`
+
+Output phase:
+
+- User bisa menemukan halaman Categories dari UI.
+- User bisa menabung ke goal dengan flow yang natural.
+- Saldo wallet dan progress goal tetap sinkron.
+- Riwayat kontribusi goal bisa dilacak.
+- Goals tidak lagi terasa seperti angka manual.
 
 ## Milestone MVP Pertama
 

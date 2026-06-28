@@ -83,8 +83,8 @@ const RecentTransactions = ({ data }: RecentTransactionsProps) => {
     <section className="m-4 rounded-lg bg-warm-cream p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-base font-bold text-deep-slate">Recent Transactions</h2>
-        <Link href="/reports" className="text-sm font-semibold text-soft-orange">
-          View Reports
+        <Link href="/transactions" className="text-sm font-semibold text-soft-orange">
+          View All
         </Link>
       </div>
       {recentTransactions.length === 0 ? (
