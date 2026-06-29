@@ -11,6 +11,7 @@ import DashboardSnapshot from "./component/DashboardSnapshot";
 import CashflowInsight from "./component/CashflowInsight";
 import CalendarActivity from "./component/CalendarActivity";
 import DashboardEmptyState from "./component/DashboardEmptyState";
+import SmartInsightCarousel from "./component/SmartInsightCarousel";
 import { useSpreadsheetDashboard } from "./hooks/useSpreadsheetDashboard";
 import { calculateDashboardSummary } from "@/lib/dashboardSummary";
 
@@ -115,6 +116,12 @@ export default function PurrneyHome() {
           <div className="space-y-4">
             <BalanceSummary
               totalBalance={summary.totalBalance}
+              income={summary.income}
+              expense={summary.expense}
+            />
+            <SmartInsightCarousel
+              transactions={dashboard.transactions}
+              budgets={dashboard.progressData}
               income={summary.income}
               expense={summary.expense}
             />

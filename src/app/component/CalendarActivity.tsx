@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DashboardTransaction } from "@/lib/spreadsheetData";
 
 type CalendarActivityProps = {
@@ -17,8 +18,22 @@ type MonthDay = {
 
 const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
 
-function getCurrentPeriod() {
-  return new Date().toISOString().slice(0, 7);
+function toMonthKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+
+  return `${year}-${month}`;
+}
+
+function getMonthLabel(date: Date) {
+  return date.toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function moveMonth(date: Date, monthDelta: number) {
+  return new Date(date.getFullYear(), date.getMonth() + monthDelta, 1);
 }
 
 function getMarkerClass(marker: DayMarker) {
@@ -34,11 +49,10 @@ function formatAmount(transaction: DashboardTransaction) {
   return `${sign}Rp ${transaction.amount.toLocaleString("id-ID")}`;
 }
 
-function buildMonthDays(transactions: DashboardTransaction[]) {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const period = getCurrentPeriod();
+function buildMonthDays(transactions: DashboardTransaction[], visibleMonth: Date) {
+  const year = visibleMonth.getFullYear();
+  const month = visibleMonth.getMonth();
+  const period = toMonthKey(visibleMonth);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOffset = new Date(year, month, 1).getDay();
   const transactionsByDay = new Map<number, DashboardTransaction[]>();
@@ -82,18 +96,36 @@ function buildMonthDays(transactions: DashboardTransaction[]) {
 
 export default function CalendarActivity({ transactions }: CalendarActivityProps) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const monthDays = useMemo(() => buildMonthDays(transactions), [transactions]);
+  const [visibleMonth, setVisibleMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const visiblePeriod = toMonthKey(visibleMonth);
+  const currentPeriod = toMonthKey(new Date());
+  const monthDays = useMemo(
+    () => buildMonthDays(transactions, visibleMonth),
+    [transactions, visibleMonth]
+  );
   const selectedDayData = monthDays.find(
     (day): day is MonthDay => Boolean(day && day.day === selectedDay)
   );
   const activeDays = monthDays.filter((day) => day && day.count > 0).length;
   const periodTransactionCount = transactions.filter((transaction) =>
-    transaction.date.startsWith(getCurrentPeriod())
+    transaction.date.startsWith(visiblePeriod)
   ).length;
-  const monthLabel = new Date().toLocaleDateString("id-ID", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = getMonthLabel(visibleMonth);
+  const isCurrentMonth = visiblePeriod === currentPeriod;
+
+  const changeMonth = (monthDelta: number) => {
+    setSelectedDay(null);
+    setVisibleMonth((currentMonth) => moveMonth(currentMonth, monthDelta));
+  };
+
+  const goToCurrentMonth = () => {
+    const now = new Date();
+    setSelectedDay(null);
+    setVisibleMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+  };
 
   return (
     <section className="m-4 rounded-lg bg-warm-cream p-4 shadow-sm">
@@ -102,13 +134,41 @@ export default function CalendarActivity({ transactions }: CalendarActivityProps
           <h2 className="text-base font-bold text-deep-slate">Calendar Activity</h2>
           <p className="text-sm text-deep-slate/60">{monthLabel}</p>
         </div>
-        <div className="rounded-md bg-white px-3 py-2 text-right shadow-sm">
-          <p className="text-xs text-deep-slate/50">Active days</p>
-          <p className="text-sm font-bold text-deep-slate">{activeDays}</p>
+        <div className="flex items-center gap-2">
+          <div className="rounded-md bg-white px-3 py-2 text-right shadow-sm">
+            <p className="text-xs text-deep-slate/50">Active days</p>
+            <p className="text-sm font-bold text-deep-slate">{activeDays}</p>
+          </div>
         </div>
       </div>
 
       <div className="rounded-md bg-white p-3 shadow-sm">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => changeMonth(-1)}
+            className="flex h-9 w-9 items-center justify-center rounded-md bg-warm-cream text-deep-slate transition hover:text-soft-orange"
+            aria-label="Show previous month"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={goToCurrentMonth}
+            disabled={isCurrentMonth}
+            className="rounded-md px-3 py-2 text-xs font-semibold text-deep-slate/70 transition hover:bg-warm-cream disabled:opacity-40"
+          >
+            This Month
+          </button>
+          <button
+            type="button"
+            onClick={() => changeMonth(1)}
+            className="flex h-9 w-9 items-center justify-center rounded-md bg-warm-cream text-deep-slate transition hover:text-soft-orange"
+            aria-label="Show next month"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
         <div className="mb-2 grid grid-cols-7 gap-1">
           {dayLabels.map((label, index) => (
             <div key={`${label}-${index}`} className="text-center text-xs font-semibold text-deep-slate/50">
@@ -200,8 +260,8 @@ export default function CalendarActivity({ transactions }: CalendarActivityProps
 
       <p className="mt-3 text-sm text-deep-slate/60">
         {periodTransactionCount === 0
-          ? "Belum ada transaksi bulan ini."
-          : `${periodTransactionCount} transaksi tercatat bulan ini.`}
+          ? `Belum ada transaksi di ${monthLabel}.`
+          : `${periodTransactionCount} transaksi tercatat di ${monthLabel}.`}
       </p>
     </section>
   );
