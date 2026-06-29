@@ -436,6 +436,24 @@ export async function appendTransactionToSpreadsheet({
   });
 }
 
+export async function appendTransactionsToSpreadsheet({
+  accessToken,
+  spreadsheetId,
+  transactions,
+}: {
+  accessToken: string;
+  spreadsheetId: string;
+  transactions: TransactionSheetRow[];
+}) {
+  return requestGoogleApi<AppendValuesResponse>({
+    accessToken,
+    url: `${sheetsApiBaseUrl}/${spreadsheetId}/values/${SHEET_NAMES.transactions}!A:L:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    body: {
+      values: transactions.map(toTransactionValues),
+    },
+  });
+}
+
 export async function appendAccountToSpreadsheet({
   accessToken,
   spreadsheetId,

@@ -1,13 +1,18 @@
 "use client";
-import { Home, BarChart, Settings, BookOpenText, Wallet } from 'lucide-react';
+import { useState } from 'react';
+import { Home, BarChart, Settings, BookOpenText, Wallet, Camera, Keyboard, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 const BottomNav = () => {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
 
   const isActive = (path: string) =>
     path === "/" ? pathname === path : pathname.startsWith(path);
+  const isTransactionActive = pathname.startsWith("/addTransaction") || pathname.startsWith("/scanReceipt");
   const mobileNavItems = (path: string) =>
     `flex min-h-12 min-w-12 flex-col items-center justify-center text-deep-slate ${isActive(path) ? 'text-soft-orange' : ''}`;
   const desktopNavItems = (path: string) =>
@@ -16,6 +21,17 @@ const BottomNav = () => {
         ? "bg-soft-orange text-white shadow-md"
         : "text-deep-slate hover:bg-soft-orange/10 hover:text-soft-orange"
     }`;
+  const transactionDesktopClass =
+    `flex h-14 w-14 items-center justify-center rounded-lg transition ${
+      isTransactionActive
+        ? "bg-soft-orange text-white shadow-md"
+        : "text-deep-slate hover:bg-soft-orange/10 hover:text-soft-orange"
+    }`;
+
+  const openTransactionRoute = (path: string) => {
+    setIsTransactionModalOpen(false);
+    router.push(path);
+  };
 
   return (
   <>
@@ -29,12 +45,16 @@ const BottomNav = () => {
         <span className="text-xs">Account</span>
       </Link>
       <div className="relative min-h-12 min-w-12">
-        <Link
-          href="/addTransaction"
-          className="absolute -top-6 left-1/2 flex -translate-x-1/2 flex-col items-center rounded-full bg-soft-orange p-4 text-white shadow-lg"
+        <button
+          type="button"
+          onClick={() => setIsTransactionModalOpen(true)}
+          className={`absolute -top-6 left-1/2 flex -translate-x-1/2 flex-col items-center rounded-full p-4 text-white shadow-lg ${
+            isTransactionActive ? "bg-deep-slate" : "bg-soft-orange"
+          }`}
+          aria-label="Choose transaction input"
         >
           <BookOpenText size={24} />
-        </Link>
+        </button>
       </div>
 
       <Link href="/reports" className={mobileNavItems("/reports")}>
@@ -57,9 +77,14 @@ const BottomNav = () => {
       <Link href="/accounts" className={desktopNavItems("/accounts")} aria-label="Accounts">
         <Wallet size={24} />
       </Link>
-      <Link href="/addTransaction" className={desktopNavItems("/addTransaction")} aria-label="Add transaction">
+      <button
+        type="button"
+        onClick={() => setIsTransactionModalOpen(true)}
+        className={transactionDesktopClass}
+        aria-label="Choose transaction input"
+      >
         <BookOpenText size={24} />
-      </Link>
+      </button>
       <Link href="/reports" className={desktopNavItems("/reports")} aria-label="Reports">
         <BarChart size={24} />
       </Link>
@@ -67,6 +92,55 @@ const BottomNav = () => {
         <Settings size={24} />
       </Link>
     </nav>
+
+    {isTransactionModalOpen ? (
+      <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-4 md:items-center md:justify-center">
+        <div className="w-full rounded-2xl bg-white p-4 shadow-2xl md:max-w-sm">
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-deep-slate">Add Transaction</h2>
+              <p className="text-sm text-deep-slate/60">Choose how you want to record it.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsTransactionModalOpen(false)}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-warm-cream text-deep-slate"
+              aria-label="Close transaction input menu"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="grid gap-3">
+            <button
+              type="button"
+              onClick={() => openTransactionRoute("/addTransaction")}
+              className="flex items-center gap-3 rounded-xl border border-orange-100 bg-warm-cream p-4 text-left transition hover:border-soft-orange"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-soft-orange shadow-sm">
+                <Keyboard size={20} />
+              </span>
+              <span>
+                <span className="block font-semibold text-deep-slate">Add Manual</span>
+                <span className="block text-sm text-deep-slate/60">Input amount, date, category, and note yourself.</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openTransactionRoute("/scanReceipt")}
+              className="flex items-center gap-3 rounded-xl border border-orange-100 bg-warm-cream p-4 text-left transition hover:border-soft-orange"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-soft-orange shadow-sm">
+                <Camera size={20} />
+              </span>
+              <span>
+                <span className="block font-semibold text-deep-slate">Scan Struk</span>
+                <span className="block text-sm text-deep-slate/60">Use local OCR, review items, then save.</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
   </>
 )};
 

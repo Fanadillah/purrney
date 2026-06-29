@@ -72,6 +72,11 @@ Purrney adalah personal finance app yang:
 - [ ] Recurring transactions untuk gaji, tagihan, cicilan, dan subscription.
 - [ ] Utang dan piutang.
 - [ ] Notes di transaksi.
+- [ ] Scan struk dengan OCR lokal sebagai draft transaksi expense.
+- [ ] OCR struk membaca semua item yang bisa dikenali.
+- [ ] Review dan edit hasil scan struk sebelum disimpan.
+- [ ] Simpan hasil scan sebagai satu transaksi total atau banyak transaksi per item.
+- [ ] Pilih kategori per item hasil scan dengan default `shopping`.
 - [ ] Attachment atau foto struk sebagai fitur lanjutan.
 
 ## Dashboard Dan Report
@@ -163,4 +168,3 @@ Purrney adalah personal finance app yang:
 8. Implement add transaction yang benar-benar menulis ke spreadsheet.
 9. Rapikan responsive layout.
 10. Tambahkan PWA basic.
-

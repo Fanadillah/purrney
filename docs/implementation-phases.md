@@ -415,6 +415,45 @@ Output phase:
 - Riwayat kontribusi goal bisa dilacak.
 - Goals tidak lagi terasa seperti angka manual.
 
+## Phase 14: Receipt OCR Flow
+
+Tujuan: user bisa menambahkan transaksi expense dari foto struk dengan OCR lokal, lalu tetap melakukan review sebelum data disimpan ke spreadsheet.
+
+Rancangan detail:
+
+- Lihat `docs/receipt-ocr-flow.md`.
+
+Scope fitur:
+
+- [ ] Ubah icon transaksi di navigation agar membuka modal pilihan input.
+- [ ] Tambahkan pilihan `Add Manual` yang masuk ke `/addTransaction`.
+- [ ] Tambahkan pilihan `Scan Struk` yang membuka kamera atau file picker.
+- [ ] Tambahkan preprocessing gambar sebelum OCR agar foto struk lebih mudah dibaca.
+- [ ] Tambahkan preview gambar asli dan hasil preprocessing.
+- [ ] Tambahkan crop atau perspective correction jika memungkinkan.
+- [ ] Tambahkan resize, grayscale, contrast, noise reduction, dan threshold.
+- [ ] Tambahkan opsi rotate manual untuk foto yang miring.
+- [ ] Jalankan OCR lokal di browser.
+- [ ] Uji konfigurasi Tesseract untuk struk, termasuk language `eng+ind`.
+- [ ] Tampilkan hasil scan dalam review screen.
+- [ ] OCR harus mencoba membaca semua item di dalam struk.
+- [ ] Izinkan user edit merchant, tanggal, total, wallet, kategori, dan note.
+- [ ] Izinkan user edit atau hapus item hasil scan yang salah.
+- [ ] Tambahkan mode simpan sebagai satu transaksi total.
+- [ ] Tambahkan mode simpan sebagai banyak transaksi per item.
+- [ ] Gunakan kategori default `shopping` untuk item hasil scan.
+- [ ] Izinkan user mengubah kategori per item.
+- [ ] Tambahkan action untuk menerapkan satu kategori ke semua item.
+- [ ] Masukkan daftar item hasil scan ke `note` jika user menyimpan satu transaksi total.
+- [ ] Tetap gunakan pending sync jika Google Sheets sedang tidak bisa diakses.
+
+Output phase:
+
+- User punya dua jalur input transaksi: manual dan scan struk.
+- Scan struk mempercepat pencatatan tanpa mengirim foto ke layanan OCR berbayar.
+- User bisa menyimpan hasil scan sebagai total struk atau sebagai beberapa transaksi item.
+- Hasil OCR tidak langsung dipercaya, tetapi menjadi draft yang bisa dikoreksi user.
+
 ## Milestone MVP Pertama
 
 MVP pertama sebaiknya berhenti di Phase 7:
