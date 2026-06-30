@@ -48,12 +48,12 @@ const BottomNav = () => {
         <button
           type="button"
           onClick={() => setIsTransactionModalOpen(true)}
-          className={`absolute -top-6 left-1/2 flex -translate-x-1/2 flex-col items-center rounded-full p-4 text-white shadow-lg ${
+          className={`absolute -top-6 left-1/2 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full p-0 text-white shadow-lg ${
             isTransactionActive ? "bg-deep-slate" : "bg-soft-orange"
           }`}
           aria-label="Choose transaction input"
         >
-          <BookOpenText size={24} />
+          <BookOpenText size={26} strokeWidth={2.4} />
         </button>
       </div>
 
