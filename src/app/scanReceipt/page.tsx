@@ -11,11 +11,10 @@ import { useSpreadsheetDashboard } from "../hooks/useSpreadsheetDashboard";
 import { usePendingSpreadsheetSync } from "../hooks/usePendingSpreadsheetSync";
 import {
   formatRupiahInput,
-  getParsedReceiptScore,
-  parseReceiptOcrText,
   type ReceiptOcrItem,
 } from "@/lib/receiptOcr";
-import { preprocessReceiptImages, type PreprocessedReceiptImage } from "@/lib/receiptImagePreprocessing";
+import { preprocessReceiptImages } from "@/lib/receiptImagePreprocessing";
+import type { ReceiptOcrApiResponse } from "@/lib/receiptOcrSchema";
 import {
   appendTransactionsToSpreadsheet,
   createTransactionRow,
@@ -47,6 +46,23 @@ function getDefaultExpenseCategory(categories: ExpenseCategoryOption[]) {
     categories.find((category) => category.kind === "expense") ??
     null
   );
+}
+
+async function scanReceiptWithAi(image: Blob) {
+  const formData = new FormData();
+  formData.append("image", image, "receipt.jpg");
+
+  const response = await fetch("/api/receipt-ocr", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(payload?.message ?? "Failed to scan receipt with AI OCR.");
+  }
+
+  return (await response.json()) as ReceiptOcrApiResponse;
 }
 
 function buildItemsNote({
@@ -216,99 +232,46 @@ export default function ScanReceiptPage() {
       if (!previewImage) {
         throw new Error("Failed to prepare receipt image for OCR.");
       }
-      setProcessedImagePreview(previewImage?.dataUrl ?? null);
-      setProcessedImageLabel(previewImage?.label ?? null);
-      setScanMessage("Reading enhanced receipt images locally on this device...");
-
-      const { createWorker, PSM } = await import("tesseract.js");
-      const worker = await createWorker(["eng", "ind"], 1, {
-        logger: (message) => {
-          if (message.status === "recognizing text") {
-            setProgress(Math.round((message.progress ?? 0) * 100));
-          }
-        },
-      });
-      const ocrCandidates: Array<{
-        image: PreprocessedReceiptImage;
-        text: string;
-        confidence: number;
-        score: number;
-      }> = [];
-      const adaptiveImage =
-        processedImages.find((image) => image.label === "Adaptive threshold") ?? previewImage;
       const grayscaleImage =
         processedImages.find((image) => image.label === "Enhanced grayscale") ?? previewImage;
-      const otsuImage =
-        processedImages.find((image) => image.label === "Otsu threshold") ?? previewImage;
-      const passConfigs = [
-        {
-          image: adaptiveImage,
-          psm: PSM.SINGLE_BLOCK,
-        },
-        {
-          image: grayscaleImage,
-          psm: PSM.SINGLE_COLUMN,
-        },
-        {
-          image: otsuImage,
-          psm: PSM.SPARSE_TEXT,
-        },
-      ];
+      setProcessedImagePreview(grayscaleImage.dataUrl);
+      setProcessedImageLabel(`${grayscaleImage.label} for AI OCR`);
+      setProgress(45);
+      setScanMessage("Reading receipt with Gemini AI OCR...");
 
-      for (const [passIndex, config] of passConfigs.entries()) {
-        setScanMessage(`Reading ${config.image.label} (${passIndex + 1}/${passConfigs.length})...`);
-        await worker.setParameters({
-          tessedit_pageseg_mode: config.psm,
-          preserve_interword_spaces: "1",
-          load_system_dawg: "0",
-          load_freq_dawg: "0",
-        } as Parameters<typeof worker.setParameters>[0]);
+      const scannedReceipt = await scanReceiptWithAi(grayscaleImage.blob);
+      setProgress(90);
 
-        const result = await worker.recognize(config.image.blob);
-        const parsedCandidate = parseReceiptOcrText(result.data.text);
-        const parserScore = getParsedReceiptScore(parsedCandidate);
-        ocrCandidates.push({
-          image: config.image,
-          text: result.data.text,
-          confidence: Math.round(result.data.confidence ?? 0),
-          score: parserScore + (result.data.confidence ?? 0) * 0.2,
-        });
-      }
-
-      await worker.terminate();
-
-      const bestCandidate = ocrCandidates.sort((first, second) => second.score - first.score)[0];
-
-      if (!bestCandidate) {
-        throw new Error("No OCR result was produced. Please try another photo.");
-      }
-
-      setProcessedImagePreview(bestCandidate.image.dataUrl);
-      setProcessedImageLabel(bestCandidate.image.label);
-
-      const parsedReceipt = parseReceiptOcrText(bestCandidate.text);
       const fallbackCategory = defaultCategory?.value ?? "others";
-      const parsedItems = parsedReceipt.items.map((item) => ({
-        ...item,
+      const parsedItems: ReceiptOcrItem[] = scannedReceipt.items.map((item, index) => ({
+        id: `ai_${index}_${Math.random().toString(36).slice(2, 8)}`,
+        name: item.name,
+        amount: item.amount,
         categoryValue:
           expenseCategories.some((category) => category.value === item.categoryValue)
             ? item.categoryValue
             : fallbackCategory,
+        selected: item.selected,
       }));
 
-      setMerchant(parsedReceipt.merchant);
-      setDate(parsedReceipt.date);
-      setTotal(formatRupiahInput(parsedReceipt.total));
+      setMerchant(scannedReceipt.merchant);
+      setDate(scannedReceipt.date);
+      setTotal(formatRupiahInput(scannedReceipt.total));
       setItems(parsedItems);
-      setRawText(parsedReceipt.rawText);
-      setOcrConfidence(bestCandidate.confidence);
+      setRawText(scannedReceipt.rawText);
+      setOcrConfidence(scannedReceipt.confidence);
       setCategoryValue(fallbackCategory);
       setSaveMode(parsedItems.length > 0 ? "items" : "total");
       setScanStatus("ready");
+      setProgress(100);
       setScanMessage(
         parsedItems.length > 0
-          ? `${parsedItems.length} item detected. Review before saving.`
-          : "No item rows detected. You can still save the receipt total."
+          ? `${parsedItems.length} item detected with AI OCR. Review before saving.${
+              scannedReceipt.warnings.length > 0 ? ` ${scannedReceipt.warnings.join(" ")}` : ""
+            }`
+          : `No item rows detected. You can still save the receipt total.${
+              scannedReceipt.warnings.length > 0 ? ` ${scannedReceipt.warnings.join(" ")}` : ""
+            }`
       );
     } catch (scanError) {
       console.error("Receipt OCR failed:", scanError);
@@ -466,7 +429,7 @@ export default function ScanReceiptPage() {
                 Scan <span className="text-soft-orange">Struk</span>
               </h1>
               <p className="text-xs text-deep-slate/60">
-                Scan receipt locally, review the items, then save.
+                Scan receipt with AI OCR, review the items, then save.
               </p>
             </div>
           </div>
@@ -506,7 +469,7 @@ export default function ScanReceiptPage() {
 
           {!user ? (
             <div className="rounded-md bg-warm-cream p-3 text-sm text-deep-slate">
-              You can test scan OCR without signing in. Sign in is only needed when you save the result.
+              You can test AI OCR without signing in. Sign in is only needed when you save the result.
             </div>
           ) : null}
 
@@ -544,7 +507,7 @@ export default function ScanReceiptPage() {
                 {processedImagePreview ? (
                   <div>
                     <p className="mb-1 text-xs font-semibold text-deep-slate/60">
-                      Enhanced for OCR{processedImageLabel ? `: ${processedImageLabel}` : ""}
+                      Enhanced for AI OCR{processedImageLabel ? `: ${processedImageLabel}` : ""}
                     </p>
                     <Image
                       src={processedImagePreview}

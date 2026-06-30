@@ -6,7 +6,7 @@ Dokumen ini adalah rencana penerapan AI OCR untuk fitur scan struk Purrney. Foku
 
 Rekomendasi awal:
 
-- Pakai `gemini-2.5-flash-lite` untuk OCR struk.
+- Pakai `gemini-3.1-flash-lite` untuk OCR struk, dengan fallback ke `gemini-2.5-flash-lite`.
 - Jalankan pemanggilan Gemini dari server-side API route Next.js, bukan langsung dari browser.
 - Tetap pakai preprocessing gambar di client untuk kompres, resize, dan peningkatan keterbacaan.
 - Tetap tampilkan halaman review sebelum transaksi disimpan.
@@ -15,7 +15,7 @@ Rekomendasi awal:
 
 Alasan:
 
-- Flash-Lite paling masuk akal untuk free tier dan biaya rendah.
+- Flash-Lite paling masuk akal untuk free tier, biaya rendah, dan extraction task yang ringan.
 - AI vision lebih cocok dari OCR murni karena bisa langsung mengekstrak struktur transaksi.
 - Server-side API route menjaga API key tidak bocor ke browser.
 - Review manual tetap wajib karena data keuangan tidak boleh langsung dipercaya 100%.
@@ -83,7 +83,7 @@ Tambahkan env lokal:
 
 ```txt
 GEMINI_API_KEY=isi_api_key_dari_google_ai_studio
-GEMINI_RECEIPT_OCR_MODEL=gemini-2.5-flash-lite
+GEMINI_RECEIPT_OCR_MODEL=gemini-3.1-flash-lite
 ```
 
 Untuk Vercel production, masukkan env yang sama di dashboard Vercel:
@@ -385,7 +385,7 @@ AI OCR gagal -> user bisa scan ulang atau input manual
 ### Phase 1: Dokumentasi Dan Persiapan
 
 - [x] Buat rencana AI OCR di dokumen ini.
-- [ ] Tentukan model default: `gemini-2.5-flash-lite`.
+- [ ] Tentukan model default: `gemini-3.1-flash-lite`.
 - [ ] Buat API key di Google AI Studio.
 - [ ] Tambahkan `GEMINI_API_KEY` ke `.env.local`.
 - [ ] Tambahkan env yang sama di Vercel saat deploy.
@@ -437,4 +437,3 @@ MVP AI OCR dianggap selesai jika:
 - User bisa simpan sebagai total atau items.
 - Error rate limit tampil dengan jelas.
 - Build dan lint lulus.
-

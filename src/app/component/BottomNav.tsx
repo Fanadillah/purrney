@@ -134,7 +134,7 @@ const BottomNav = () => {
               </span>
               <span>
                 <span className="block font-semibold text-deep-slate">Scan Struk</span>
-                <span className="block text-sm text-deep-slate/60">Use local OCR, review items, then save.</span>
+                <span className="block text-sm text-deep-slate/60">Use AI OCR, review items, then save.</span>
               </span>
             </button>
           </div>

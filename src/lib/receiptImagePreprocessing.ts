@@ -27,8 +27,8 @@ function canvasToBlob(canvas: HTMLCanvasElement) {
 
         reject(new Error("Failed to prepare receipt image for OCR."));
       },
-      "image/png",
-      0.95
+      "image/jpeg",
+      0.82
     );
   });
 }
@@ -225,7 +225,7 @@ async function buildPreprocessedVariant({
 
   return {
     blob,
-    dataUrl: canvas.toDataURL("image/png"),
+    dataUrl: canvas.toDataURL("image/jpeg", 0.82),
     width: imageData.width,
     height: imageData.height,
     label,
