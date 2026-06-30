@@ -14,6 +14,13 @@ import { SPREADSHEET_SCHEMA_VERSION } from '../../lib/spreadsheetSchema';
 
 type GoogleWorkspacePermissionStatus = "unknown" | "granted" | "missing" | "expired";
 const firestoreSaveTimeoutMs = 20000;
+const googleWorkspaceTokenStoragePrefix = "purrney.googleWorkspaceToken.v1";
+const googleWorkspaceTokenTtlMs = 50 * 60 * 1000;
+
+type CachedGoogleWorkspaceToken = {
+    accessToken: string;
+    expiresAt: number;
+};
 
 type AuthContextType = 
     | {
@@ -54,6 +61,64 @@ function withTimeout<T>({
     ]);
 }
 
+function getGoogleWorkspaceTokenStorageKey(uid: string) {
+    return `${googleWorkspaceTokenStoragePrefix}.${uid}`;
+}
+
+function readCachedGoogleWorkspaceToken(uid: string) {
+    if (typeof window === "undefined") return null;
+
+    try {
+        const rawValue = window.localStorage.getItem(getGoogleWorkspaceTokenStorageKey(uid));
+        if (!rawValue) return null;
+
+        const cachedToken = JSON.parse(rawValue) as CachedGoogleWorkspaceToken;
+        if (!cachedToken.accessToken || cachedToken.expiresAt <= Date.now()) {
+            window.localStorage.removeItem(getGoogleWorkspaceTokenStorageKey(uid));
+            return null;
+        }
+
+        return cachedToken.accessToken;
+    } catch {
+        window.localStorage.removeItem(getGoogleWorkspaceTokenStorageKey(uid));
+        return null;
+    }
+}
+
+function saveCachedGoogleWorkspaceToken({
+    uid,
+    accessToken,
+}: {
+    uid: string;
+    accessToken: string | null;
+}) {
+    if (typeof window === "undefined") return;
+
+    const storageKey = getGoogleWorkspaceTokenStorageKey(uid);
+
+    if (!accessToken) {
+        window.localStorage.removeItem(storageKey);
+        return;
+    }
+
+    const cachedToken: CachedGoogleWorkspaceToken = {
+        accessToken,
+        expiresAt: Date.now() + googleWorkspaceTokenTtlMs,
+    };
+
+    try {
+        window.localStorage.setItem(storageKey, JSON.stringify(cachedToken));
+    } catch {
+        // Token cache is a UX helper only. Google API errors still remain the source of truth.
+    }
+}
+
+function clearCachedGoogleWorkspaceToken(uid: string | null | undefined) {
+    if (!uid || typeof window === "undefined") return;
+
+    window.localStorage.removeItem(getGoogleWorkspaceTokenStorageKey(uid));
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [ user, setUser ] = useState<User | null>(null);
     const [ registry, setRegistry ] = useState<UserRegistry | null>(null);
@@ -86,11 +151,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             try {
                 const userRegistry = await ensureUserRegistry(u);
+                const cachedAccessToken = readCachedGoogleWorkspaceToken(u.uid);
                 if (active) {
                     setRegistry(userRegistry);
-                    setGoogleWorkspacePermissionStatus((currentStatus) =>
-                        currentStatus === "granted" ? currentStatus : "missing"
-                    );
+                    setGoogleAccessToken(cachedAccessToken);
+                    setGoogleWorkspacePermissionStatus(cachedAccessToken ? "granted" : "missing");
                     setError(null);
                 }
             } catch (registryError) {
@@ -123,6 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             setGoogleAccessToken(accessToken);
             setGoogleWorkspacePermissionStatus(accessToken ? "granted" : "missing");
+            saveCachedGoogleWorkspaceToken({
+                uid: credential.user.uid,
+                accessToken,
+            });
 
             return credential;
         } catch (signInError) {
@@ -145,6 +214,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             setGoogleAccessToken(accessToken);
             setGoogleWorkspacePermissionStatus(accessToken ? "granted" : "missing");
+            saveCachedGoogleWorkspaceToken({
+                uid: credential.user.uid,
+                accessToken,
+            });
 
             if (!accessToken) {
                 setError("Google permission was granted, but no access token was returned.");
@@ -161,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const markGoogleWorkspaceTokenExpired = () => {
+        clearCachedGoogleWorkspaceToken(user?.uid);
         setGoogleAccessToken(null);
         setGoogleWorkspacePermissionStatus("expired");
         setError("Google permission expired. Please reconnect your Google account.");
@@ -280,6 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             setError(null);
             await signOut(auth);
+            clearCachedGoogleWorkspaceToken(user?.uid);
             setRegistry(null);
             setGoogleAccessToken(null);
             setGoogleWorkspacePermissionStatus("missing");
