@@ -8,13 +8,17 @@ import {
   appendBudgetToSpreadsheet,
   createBudgetRow,
 } from "@/lib/userSpreadsheet";
-import type { BudgetPeriodType } from "@/lib/spreadsheetSchema";
+import type { BudgetPeriodType, BudgetSheetRow } from "@/lib/spreadsheetSchema";
 import Image from "next/image";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 function formatRupiah(value: string) {
   const rawValue = value.replace(/\D/g, "");
   return rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function formatRupiahNumber(value: number) {
+  return Math.max(0, Math.round(value)).toLocaleString("id-ID");
 }
 
 export default function BudgetPage() {
@@ -39,6 +43,38 @@ export default function BudgetPage() {
   const [amountMax, setAmountMax] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+  const [editingBudget, setEditingBudget] = useState<BudgetSheetRow | null>(null);
+  const [deleteStatus, setDeleteStatus] = useState<"idle" | "deleting">("idle");
+  const [deletingBudgetId, setDeletingBudgetId] = useState<string | null>(null);
+
+  const categoryLabelByValue = useMemo(
+    () => new Map(dashboard.categories.map((category) => [category.value, category.label])),
+    [dashboard.categories]
+  );
+  const activeBudgets = useMemo(() => {
+    const transactions = sourceData?.transactions ?? [];
+
+    return (sourceData?.budgets ?? [])
+      .filter((budget) => budget.isActive)
+      .map((budget) => {
+        const amount = transactions
+          .filter(
+            (transaction) =>
+              transaction.type === "out" &&
+              !transaction.transferGroupId &&
+              transaction.categoryValue === budget.categoryValue &&
+              transaction.date.startsWith(budget.period)
+          )
+          .reduce((sum, transaction) => sum + transaction.amount, 0);
+
+        return {
+          budget,
+          amount,
+          categoryLabel:
+            categoryLabelByValue.get(budget.categoryValue) ?? budget.categoryValue,
+        };
+      });
+  }, [categoryLabelByValue, sourceData?.budgets, sourceData?.transactions]);
 
   const numericAmount = Number(amountMax.replace(/\D/g, ""));
   const canSubmit =
@@ -61,12 +97,23 @@ export default function BudgetPage() {
     try {
       setSubmitStatus("saving");
       setMessage(null);
-      const budget = createBudgetRow({
-        categoryValue,
-        periodType,
-        period,
-        amountMax: numericAmount,
-      });
+      const timestamp = new Date().toISOString();
+      const budget = editingBudget
+        ? {
+            ...editingBudget,
+            categoryValue,
+            periodType,
+            period,
+            amountMax: numericAmount,
+            isActive: true,
+            updatedAt: timestamp,
+          }
+        : createBudgetRow({
+            categoryValue,
+            periodType,
+            period,
+            amountMax: numericAmount,
+          });
 
       await appendBudgetToSpreadsheet({
         accessToken: googleAccessToken,
@@ -75,8 +122,9 @@ export default function BudgetPage() {
       });
 
       setSubmitStatus("success");
-      setMessage("Budget saved to your spreadsheet.");
+      setMessage(editingBudget ? "Budget updated in your spreadsheet." : "Budget saved to your spreadsheet.");
       setAmountMax("");
+      setEditingBudget(null);
       await reload();
     } catch (saveError) {
       console.error("Error saving budget:", saveError);
@@ -88,6 +136,77 @@ export default function BudgetPage() {
       if (/^(401|403)\b/.test(errorMessage)) {
         markGoogleWorkspaceTokenExpired();
       }
+    }
+  };
+
+  const handleEditBudget = (budget: BudgetSheetRow) => {
+    setEditingBudget(budget);
+    setCategoryValue(budget.categoryValue);
+    setPeriodType(budget.periodType);
+    setPeriod(budget.period);
+    setAmountMax(formatRupiahNumber(budget.amountMax));
+    setSubmitStatus("idle");
+    setMessage("Editing selected budget. Save to apply changes.");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingBudget(null);
+    setCategoryValue("");
+    setPeriodType("monthly");
+    setPeriod(new Date().toISOString().slice(0, 7));
+    setAmountMax("");
+    setSubmitStatus("idle");
+    setMessage(null);
+  };
+
+  const handleDeleteBudget = async (budget: BudgetSheetRow) => {
+    if (!googleAccessToken || !registry?.spreadsheetId) {
+      setSubmitStatus("error");
+      setMessage("Reconnect Google Sheets access before deleting a budget.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete budget for ${categoryLabelByValue.get(budget.categoryValue) ?? budget.categoryValue}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeleteStatus("deleting");
+      setDeletingBudgetId(budget.id);
+      setMessage(null);
+
+      await appendBudgetToSpreadsheet({
+        accessToken: googleAccessToken,
+        spreadsheetId: registry.spreadsheetId,
+        budget: {
+          ...budget,
+          isActive: false,
+          updatedAt: new Date().toISOString(),
+        },
+      });
+
+      if (editingBudget?.id === budget.id) {
+        handleCancelEdit();
+      }
+
+      setSubmitStatus("success");
+      setMessage("Budget deleted from active budgets.");
+      await reload();
+    } catch (deleteError) {
+      console.error("Error deleting budget:", deleteError);
+      const errorMessage =
+        deleteError instanceof Error ? deleteError.message : "Failed to delete budget.";
+      setSubmitStatus("error");
+      setMessage(errorMessage);
+
+      if (/^(401|403)\b/.test(errorMessage)) {
+        markGoogleWorkspaceTokenExpired();
+      }
+    } finally {
+      setDeleteStatus("idle");
+      setDeletingBudgetId(null);
     }
   };
 
@@ -131,7 +250,20 @@ export default function BudgetPage() {
           ) : null}
 
           <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl bg-white p-4 shadow-lg">
-            <h2 className="text-lg font-bold text-deep-slate">Add or Update Budget</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-bold text-deep-slate">
+                {editingBudget ? "Edit Budget" : "Add Budget"}
+              </h2>
+              {editingBudget ? (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="rounded-md border border-soft-orange px-3 py-2 text-xs font-semibold text-soft-orange"
+                >
+                  Cancel Edit
+                </button>
+              ) : null}
+            </div>
             {message ? (
               <div className={`rounded-md p-3 text-sm ${submitStatus === "success" ? "bg-green-50 text-money-in" : "bg-red-50 text-money-out"}`}>
                 {message}
@@ -178,25 +310,54 @@ export default function BudgetPage() {
               disabled={!canSubmit}
               className="w-full rounded-xl bg-soft-orange py-3 font-semibold text-white shadow-lg disabled:opacity-50"
             >
-              {submitStatus === "saving" ? "Saving..." : "Save Budget"}
+              {submitStatus === "saving"
+                ? "Saving..."
+                : editingBudget
+                  ? "Update Budget"
+                  : "Save Budget"}
             </button>
           </form>
 
           <section>
             <h2 className="mb-2 text-xl font-bold text-deep-slate">Active Budgets</h2>
-            {dashboard.progressData.length === 0 ? (
+            {activeBudgets.length === 0 ? (
               <div className="rounded-md bg-warm-cream p-4 text-sm text-deep-slate shadow">
                 No active budgets found.
               </div>
             ) : null}
             <div className="space-y-2">
-              {dashboard.progressData.map((budget) => (
+              {activeBudgets.map(({ budget, amount, categoryLabel }) => (
                 <div key={budget.id} className="rounded-md bg-warm-cream p-3 shadow">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-deep-slate">{budget.category}</p>
-                    <p className="text-sm text-deep-slate">
-                      Rp {budget.amount.toLocaleString("id-ID")} / Rp {budget.amountMax.toLocaleString("id-ID")}
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-deep-slate">{categoryLabel}</p>
+                      <p className="text-xs text-deep-slate/60">
+                        {budget.periodType} · {budget.period}
+                      </p>
+                    </div>
+                    <p className="text-right text-sm text-deep-slate">
+                      Rp {formatRupiahNumber(amount)} / Rp {formatRupiahNumber(budget.amountMax)}
                     </p>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEditBudget(budget)}
+                      disabled={submitStatus === "saving" || deleteStatus === "deleting"}
+                      className="rounded-lg border border-soft-orange px-3 py-2 text-sm font-semibold text-soft-orange disabled:opacity-50"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteBudget(budget)}
+                      disabled={submitStatus === "saving" || deleteStatus === "deleting"}
+                      className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-money-out disabled:opacity-50"
+                    >
+                      {deleteStatus === "deleting" && deletingBudgetId === budget.id
+                        ? "Deleting..."
+                        : "Delete"}
+                    </button>
                   </div>
                 </div>
               ))}
