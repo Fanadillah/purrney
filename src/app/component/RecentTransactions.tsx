@@ -77,7 +77,17 @@ const TransactionItem = ({
 };
 
 const RecentTransactions = ({ data }: RecentTransactionsProps) => {
-  const recentTransactions = data.slice(0, 5);
+  const recentTransactions = [...data]
+    .sort((firstTransaction, secondTransaction) => {
+      const dateComparison = secondTransaction.date.localeCompare(firstTransaction.date);
+
+      if (dateComparison !== 0) {
+        return dateComparison;
+      }
+
+      return secondTransaction.id.localeCompare(firstTransaction.id);
+    })
+    .slice(0, 5);
 
   return (
     <section className="m-4 rounded-lg bg-warm-cream p-4 shadow-sm">
